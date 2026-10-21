@@ -1,0 +1,6 @@
+.git
+accounts.json
+.env*
+tests
+node_modules
+.github

@@ -2,7 +2,7 @@ const {test}=require('node:test');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 function client(){
   const calls=[],source=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
-  const code=source.slice(0,source.indexOf('const authenticate ='))+'\n;({requestMatchStats})';
+  const code=source.slice(0,source.indexOf('const accounts ='))+'\n;({requestMatchStats})';
   const api=vm.runInNewContext(code,{require:require('module').createRequire(path.join(__dirname,'../server.js')),process,Buffer,URL,URLSearchParams,AbortSignal,__dirname:path.join(__dirname,'..'),console:{log(){}},fetch:async(url,options={})=>{
     calls.push({url,options});return options.method==='POST'?{ok:true,status:200,text:async()=>'{"status":"success","data":{}}'}:{headers:{getSetCookie:()=>[]}};
   }});

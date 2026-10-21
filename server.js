@@ -737,7 +737,8 @@ function staticFile(
    SERVER
 ========================================================= */
 
-const authenticate = require('./auth').middleware(require('./accounts.json'));
+const accounts = process.env.AUTH_ACCOUNTS_JSON ? JSON.parse(process.env.AUTH_ACCOUNTS_JSON) : require('./accounts.json');
+const authenticate = require('./auth').middleware(accounts);
 
 const server =
   http.createServer(
@@ -749,7 +750,7 @@ const server =
         const url =
           new URL(
             req.url,
-            `http://${req.headers.host || "localhost"}`
+            `${process.env.VERCEL?'https':'http'}://${req.headers.host || "localhost"}`
           );
 
 
@@ -1080,7 +1081,8 @@ const server =
   );
 
 
-server.listen(
+module.exports=server;
+if(require.main===module)server.listen(
   PORT,
   "127.0.0.1",
   () => {

@@ -1,6 +1,14 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const {createAuth,hashPassword}=require('../auth');
+test('signed sessions survive another server instance and reject tampering, expiry and changed passwords',()=>{
+ let now=0;const accounts={tester:hashPassword('pw')},secret='a'.repeat(64);
+ const first=createAuth(accounts,()=>now,secret),second=createAuth(accounts,()=>now,secret);
+ const token=first.login('tester','pw');assert.equal(second.user(token),'tester');
+ assert.equal(second.user(token+'x'),null);
+ const changed=createAuth({tester:hashPassword('new')},()=>now,secret);assert.equal(changed.user(token),null);
+ now=12*60*60*1000;assert.equal(second.user(token),null);
+});
 test('passwords are hashed and invalid credentials cannot create a session',()=>{
  const record=hashPassword('test-password');
  assert.notEqual(record.hash,'test-password');
