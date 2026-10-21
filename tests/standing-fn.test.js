@@ -1,0 +1,53 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const file=require('node:path').join(__dirname,'../public/standing-fn.js');
+test('Standing FN supports twelve ranks across two six-team columns',()=>{
+  assert.ok(fs.existsSync(file),'Standing FN layout is not implemented');
+  const fn=require(file);
+  const rows=Array.from({length:12},(_,i)=>fn.position(i));
+  assert.equal(rows[0].name,347); assert.equal(rows[5].y,963);
+  assert.equal(rows[6].name,1205); assert.equal(rows[6].y,418);
+  assert.equal(rows[11].y,963);
+  assert.equal(new Set(rows.map(r=>r.name+','+r.y)).size,12);
+});
+test('FN title follows ribbon angle and fits explicit multiple lines in the ribbon',()=>{
+  const fn=require(file),ctx={measureText(text){return {width:text.length*parseFloat(this.font.match(/([0-9.]+)px/)[1])*.6}}};
+  const p=fn.titleLayout(ctx,'GIẢI FREE FIRE\nVÒNG CHUNG KẾT');
+  assert.deepEqual(p.lines,['GIẢI FREE FIRE','VÒNG CHUNG KẾT']);
+  assert.ok(p.angle<0,'The ribbon slopes upward to the right');
+  assert.ok(p.lineHeight*p.lines.length<=56,'Both lines must fit vertically');
+  assert.ok(Math.max(...p.lines.map(line=>ctx.measureText(line).width))<=300);
+});
+test('FN tournament title fits the blank ribbon and is drawn using its selected font',async()=>{
+  const fn=require(file),calls=[];
+  const transforms=[];
+  const ctx={save(){},restore(){},translate(...args){transforms.push(args)},rotate(angle){transforms.push(angle)},measureText(text){return {width:text.length*parseFloat(this.font.match(/([0-9.]+)px/)[1])*.6}},fillText(...args){calls.push({args,font:this.font})}};
+  const title='GIẢI ĐẤU FREE FIRE VÒNG CHUNG KẾT';
+  const coords={fonts:{title:'gff-vn-black'}};
+  await fn.draw(ctx,[],async()=>{},()=>'',coords,title);
+  assert.equal(calls.length,1,'The ribbon must include the tournament title');
+  assert.deepEqual(calls[0].args,[title,0,0]);
+  assert.deepEqual(transforms[0],[1203,278]);
+  assert.equal(transforms[1],-2.5*Math.PI/180);
+  assert.match(calls[0].font,/GFFVNBlack/);
+  assert.ok(ctx.measureText(title).width<=300,'The title must fit inside the ribbon');
+  fn.titleLayout(ctx,'W'.repeat(100),coords);
+  assert.ok(ctx.measureText('W'.repeat(100)).width<=300,'A long allowed title must not overflow the ribbon');
+  calls.length=0;
+  await fn.draw(ctx,[],async()=>{},()=>'',coords,'GIẢI FREE FIRE\nVÒNG CHUNG KẾT');
+  assert.deepEqual(calls.map(call=>call.args),[['GIẢI FREE FIRE',0,-13.5],['VÒNG CHUNG KẾT',0,13.5]]);
+});
+test('PNG draws full names, logos and only the three visible score fields',async()=>{
+  assert.ok(fs.existsSync(file),'Standing FN renderer is not implemented');
+  const fn=require(file),texts=[],images=[];
+  const ctx={drawImage(...args){images.push(args)},fillText(...args){texts.push(args)},measureText(t){return {width:t.length*20}}};
+  const teams=Array.from({length:12},(_,i)=>({name:i===0?'A VERY LONG TEAM NAME':'TEAM '+(i+1),booyah:i,kills:60-i,placement:999,total:90-i}));
+  await fn.draw(ctx,teams,async()=>({width:100,height:100}),()=>'/logo.png');
+  assert.equal(images.length,12);
+  assert.equal(texts.length,48);
+  assert.ok(!texts.some(t=>t[0]==='999'));
+  assert.equal(texts[0][0],teams[0].name);
+  assert.deepEqual(texts[24].slice(1),[1205,418]);
+  assert.equal(texts.at(-1)[0],'79');
+});

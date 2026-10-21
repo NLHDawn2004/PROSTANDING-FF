@@ -1,0 +1,32 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const file=require('node:path').join(__dirname,'../public/standing-ffpt.js');
+test('FFPT separates champion, six left teams and eight right teams',()=>{
+  assert.ok(fs.existsSync(file),'FFPT is not implemented');
+  const ffpt=require(file);
+  assert.equal(ffpt.position(0).logoSize,124);
+  assert.equal(ffpt.position(0).statsY,498);
+  assert.equal(ffpt.position(1).y,600);
+  assert.equal(ffpt.position(6).y,960);
+  assert.equal(ffpt.position(7).name,1160);
+  assert.equal(ffpt.position(7).y,382);
+  assert.equal(ffpt.position(14).y,949);
+  assert.equal(ffpt.position(7,{rightY:400,rightStep:80}).y,400);
+  assert.equal(ffpt.position(14,{rightY:400,rightStep:80}).y,960);
+});
+test('FFPT export includes fifteenth team and editable title; keeps full long names',async()=>{
+  assert.ok(fs.existsSync(file),'FFPT is not implemented');
+  const ffpt=require(file),texts=[],images=[];
+  const ctx={measureText:t=>({width:t.length*20}),fillText(...a){texts.push(a)},drawImage(...a){images.push(a)}};
+  const teams=Array.from({length:16},(_,i)=>({name:i?'TEAM '+(i+1):'A VERY LONG CHAMPION TEAM NAME',total:150-i,kills:90-i,booyah:i===0?3:0,placement:999}));
+  await ffpt.draw(ctx,teams,async()=>({width:32,height:16}),()=>'/logo.png',{},'GRAND FINAL - FFPT 31');
+  assert.equal(images.length,15);
+  assert.equal(texts.length,61);
+  assert.equal(texts[0][0],'GRAND FINAL - FFPT 31');
+  assert.ok(texts.some(t=>t[0]==='TEAM 15'&&t[1]===1160&&t[2]===949));
+  assert.ok(!texts.some(t=>t[0]==='TEAM 16'||t[0]==='999'));
+  assert.equal(texts[1][0],teams[0].name);
+  assert.deepEqual(texts[2],['150',274,498]);
+  assert.deepEqual(texts[4],['03',817,498]);
+});

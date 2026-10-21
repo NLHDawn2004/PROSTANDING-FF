@@ -1,0 +1,46 @@
+const crypto=require('crypto');
+const TTL=12*60*60*1000;
+function hashPassword(password){const salt=crypto.randomBytes(16).toString('hex');return {salt,hash:crypto.scryptSync(password,salt,64).toString('hex')};}
+function createAuth(accounts,clock=Date.now){
+ const sessions=new Map();
+ return {
+  login(name,password){
+   const record=Object.hasOwn(accounts,name)?accounts[name]:null;
+   const hash=crypto.scryptSync(password,record?.salt||'invalid-user',64);
+   if(!record||!crypto.timingSafeEqual(hash,Buffer.from(record.hash,'hex')))return null;
+   for(const [key,session] of sessions)if(session.expires<=clock())sessions.delete(key);
+   const token=crypto.randomBytes(32).toString('hex');sessions.set(token,{name,expires:clock()+TTL});return token;
+  },
+  user(token){const session=sessions.get(token);if(!session)return null;if(session.expires<=clock()){sessions.delete(token);return null;}return session.name;},
+  logout(token){sessions.delete(token);}
+ };
+}
+function middleware(accounts){
+ const auth=createAuth(accounts),attempts=new Map();
+ const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
+ return async(req,res,url)=>{
+  res.setHeader('Cache-Control','no-store');
+  const token=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('ff_session='))?.slice(11);
+  const user=auth.user(token);
+  if(req.method==='POST'&&['/api/login','/api/logout'].includes(url.pathname)){
+   if(req.headers.origin&&req.headers.origin!==url.origin){json(res,403,{ok:false,error:'Yêu cầu không hợp lệ.'});return true;}
+   if(url.pathname==='/api/logout'){auth.logout(token);res.setHeader('Set-Cookie','ff_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');json(res,200,{ok:true});return true;}
+   const key=req.socket.remoteAddress,now=Date.now();
+   for(const [k,v] of attempts)if(v.until<=now)attempts.delete(k);
+   const attempt=attempts.get(key)||{count:0,until:now+60000};
+   if(attempt.count>=10){json(res,429,{ok:false,error:'Bạn thử quá nhiều lần. Vui lòng chờ một phút.'});return true;}
+   let body='',tooLarge=false;for await(const chunk of req){body+=chunk;if(body.length>4096){tooLarge=true;break;}}
+   let input;try{input=JSON.parse(body);}catch{input={};}
+   if(tooLarge||typeof input.username!=='string'||typeof input.password!=='string'){json(res,400,{ok:false,error:'Vui lòng nhập tài khoản và mật khẩu.'});return true;}
+   const session=auth.login(input.username.trim(),input.password);
+   if(!session){attempt.count++;attempts.set(key,attempt);json(res,401,{ok:false,error:'Tài khoản hoặc mật khẩu không đúng.'});return true;}
+   attempts.delete(key);res.setHeader('Set-Cookie',`ff_session=${session}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200`);json(res,200,{ok:true});return true;
+  }
+  if(url.pathname==='/login'&&req.method==='GET'){
+   if(user){res.writeHead(302,{Location:'/'});res.end();}else{res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(require('fs').readFileSync(require('path').join(__dirname,'login.html')));}return true;
+  }
+  if(!user){if(url.pathname.startsWith('/api/'))json(res,401,{ok:false,error:'Vui lòng đăng nhập để tiếp tục.'});else{res.writeHead(302,{Location:'/login'});res.end();}return true;}
+  return false;
+ };
+}
+module.exports={hashPassword,createAuth,middleware};

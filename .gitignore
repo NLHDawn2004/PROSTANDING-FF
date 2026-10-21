@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# Local login credentials
+accounts.json
+# Legacy deployment templates; this tool requires a Node server
+.github/workflows/

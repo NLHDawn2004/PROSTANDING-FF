@@ -1,0 +1,9 @@
+/* Bundled GFF fonts: no Windows installation required. */
+@font-face{font-family:"GFFLatinBold";src:url("./fonts/GFF-Latin-Bold.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFLatinCdMedium";src:url("./fonts/GFF-Latin-CdMedium.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFLatinLight";src:url("./fonts/GFF-Latin-Light.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFLatinMedium";src:url("./fonts/GFF-LATIN-MEDIUM.OTF") format("opentype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFLatinRegular";src:url("./fonts/GFF-Latin-Regular.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFLatinThin";src:url("./fonts/GFF-LATIN-THIN.OTF") format("opentype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFVNBlack";src:url("./fonts/GFF-VN-Black.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
+@font-face{font-family:"GFFVNExtraBold";src:url("./fonts/GFF-VN-ExtraBold.ttf") format("truetype");font-style:normal;font-weight:400;font-display:swap;}
