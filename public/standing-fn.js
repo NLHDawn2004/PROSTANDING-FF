@@ -26,7 +26,7 @@
       let size=c.nameSize;ctx.font=fontTools.font('name',size,700,c.fonts);
       const name=String(t.name||'');
       while(size>10&&ctx.measureText(name).width>p.nameWidth){size--;ctx.font=fontTools.font('name',size,700,c.fonts);}
-      ctx.fillText(name,p.name,p.y);
+      if(root.ChampionRush)await root.ChampionRush.drawName(ctx,t,name,p.name,p.y,p.nameWidth,loadImage);else ctx.fillText(name,p.name,p.y);
       ctx.textAlign='center';ctx.fillStyle='#09204f';ctx.font=fontTools.font('stats',c.fontSize,900,c.fonts);
       for(const k of ['booyah','kills','total'])ctx.fillText(String(t[k]??0),p[k],p.y);
     }

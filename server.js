@@ -26,7 +26,18 @@ const SIGN_PREFIX =
  * Khuyến nghị dùng biến môi trường để không lộ API key.
  */
 const GOOGLE_DRIVE_API_KEY =
-  process.env.GOOGLE_DRIVE_API_KEY || "";
+  process.env.GOOGLE_DRIVE_API_KEY || readLocalDriveKey();
+
+function readLocalDriveKey() {
+  try {
+    const text = fs.readFileSync(path.join(__dirname, '.env'), 'utf8');
+    const match = text.match(/^\s*GOOGLE_DRIVE_API_KEY\s*=\s*(.*?)\s*$/m);
+    return match ? match[1].replace(/^(["'])(.*)\1$/, '$2') : '';
+  } catch (error) {
+    if (error.code === 'ENOENT') return '';
+    throw error;
+  }
+}
 
 const PUBLIC = path.join(__dirname, "public");
 
@@ -739,6 +750,7 @@ function staticFile(
 
 const accounts = process.env.AUTH_ACCOUNTS_JSON ? JSON.parse(process.env.AUTH_ACCOUNTS_JSON) : require('./accounts.json');
 const authenticate = require('./auth').middleware(accounts);
+const broadcast = require('./broadcast').createBroadcast();
 
 const server =
   http.createServer(
@@ -754,7 +766,9 @@ const server =
           );
 
 
+        if(await broadcast(req,res,url))return;
         if(await authenticate(req,res,url))return;
+        if(await broadcast(req,res,url,true))return;
 
         /* =================================================
            FREE FIRE MATCH

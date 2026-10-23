@@ -1332,13 +1332,13 @@ function addPlayerStats(target, player) {
 
 
 
-function buildPlayerData(targetGame = null) {
+function buildPlayerData(targetGame = null, sourceMatches = null) {
 
   const players = new Map();
 
 
 
-  const matches = getAllMatches();
+  const matches = sourceMatches ?? getAllMatches();
 
 
 
@@ -1569,6 +1569,7 @@ function getDetailTargetGame() {
 
 
 function render() {
+  window.MVP?.refresh();
 
   renderSummary();
 
@@ -1824,7 +1825,7 @@ function renderFFPTBoard(teams){
     row.className='custom-ranking-row ffpt-row'+(index===0?' ffpt-champion':'');
     for(const [key,value] of Object.entries({y:p.y,statsY:p.statsY,logo:p.logo,logoSize:p.logoSize,name:p.name,nameWidth:p.nameWidth,total:p.total,kills:p.kills,booyah:p.booyah,fontSize:p.fontSize,nameSize:StandingFFPT.fitName(measure,String(team.name||''),p.nameSize,p.nameWidth,400,c.fonts)}))row.style.setProperty('--ffpt-'+key,value+'px');
     const logo=rankingTeamLogo(team),name=escapeHTML(team.name);
-    row.innerHTML=`<div class="custom-logo logo-box" title="Bấm để chọn logo">${logo?`<img src="${logo}" alt="">`:'<span>+</span>'}</div><div class="custom-name" title="${name}">${name}</div><div class="custom-stat custom-total">${team.total??0}</div><div class="custom-stat custom-kills">${team.kills??0}</div><div class="custom-stat custom-booyah">${index===0?String(team.booyah??0).padStart(2,'0'):team.booyah??0}</div>`;
+    row.innerHTML=`<div class="custom-logo logo-box" title="Bấm để chọn logo">${logo?`<img src="${logo}" alt="">`:'<span>+</span>'}</div><div class="custom-name" title="${name}"><span class="cpr-team-name">${name}</span>${window.ChampionRush?.markup(team)||''}</div><div class="custom-stat custom-total">${team.total??0}</div><div class="custom-stat custom-kills">${team.kills??0}</div><div class="custom-stat custom-booyah">${index===0?String(team.booyah??0).padStart(2,'0'):team.booyah??0}</div>`;
     row.querySelector('.logo-box').onclick=()=>{state.selectedLogoTeam=team.key;logoPicker.click();};
     boardRows.appendChild(row);
   });
@@ -1882,7 +1883,7 @@ function renderBoard() {
     const safeName = escapeHTML(team.name);
     row.innerHTML = `
       <div class="custom-logo logo-box" data-team="${escapeHTML(team.key)}" title="Bấm để chọn logo">${logo ? `<img src="${logo}" alt="">` : `<span>+</span>`}</div>
-      <div class="custom-name" title="${safeName}">${safeName}</div>
+      <div class="custom-name" title="${safeName}"><span class="cpr-team-name">${safeName}</span>${window.ChampionRush?.markup(team)||''}</div>
       <div class="custom-stat custom-booyah">${team.booyah ?? 0}</div>
       <div class="custom-stat custom-kills">${team.kills ?? 0}</div>
       <div class="custom-stat custom-place">${team.placement ?? 0}</div>
@@ -6073,7 +6074,7 @@ function rankingDrawPNG(ctx,teams,loadImage){
       const logo=rankingTeamLogo(t);
       if(logo){try{const im=await loadImage(logo),ratio=Math.min(45/im.width,45/im.height);ctx.drawImage(im,c.logo-im.width*ratio/2,y-im.height*ratio/2,im.width*ratio,im.height*ratio);}catch(e){console.warn("Logo không tải được",e);}}
       ctx.fillStyle=ink;ctx.textBaseline="middle";ctx.font=RankingFonts.font('name',c.fontSize,900,c.fonts);ctx.textAlign="left";
-      let name=String(t.name||"");while(ctx.measureText(name).width>195&&name.length>3)name=name.slice(0,-1);ctx.fillText(name,c.name,y);
+      let name=String(t.name||"");while(ctx.measureText(name).width>195-(window.ChampionRush?.reserve(t)||0)&&name.length>3)name=name.slice(0,-1);if(window.ChampionRush)await ChampionRush.drawName(ctx,t,name,c.name,y,195,loadImage);else ctx.fillText(name,c.name,y);
       ctx.font=RankingFonts.font('stats',c.fontSize,900,c.fonts);ctx.textAlign="center";
       [["booyah",t.booyah],["kills",t.kills],["placement",t.placement],["total",t.total]].forEach(([k,val])=>ctx.fillText(String(val??0),c[k],y));
     }

@@ -21,7 +21,7 @@
     for(let i=0;i<Math.min(15,teams.length);i++){
       const t=teams[i],p=position(i,c),logo=logoFor(t);
       if(logo){try{const im=await loadImage(logo),ratio=Math.min(p.logoSize/im.width,p.logoSize/im.height);ctx.drawImage(im,p.logo-im.width*ratio/2,p.y-im.height*ratio/2,im.width*ratio,im.height*ratio);}catch(e){console.warn('Không tải được logo',e);}}
-      ctx.textAlign='left';ctx.fillStyle=p.color;fitName(ctx,String(t.name||''),p.nameSize,p.nameWidth,400,c.fonts);ctx.fillText(String(t.name||''),p.name,p.y);
+      ctx.textAlign='left';ctx.fillStyle=p.color;fitName(ctx,String(t.name||''),p.nameSize,p.nameWidth,400,c.fonts);if(root.ChampionRush)await root.ChampionRush.drawName(ctx,t,String(t.name||''),p.name,p.y,p.nameWidth,loadImage,i===0?120:48,i===0?75:30);else ctx.fillText(String(t.name||''),p.name,p.y);
       ctx.textAlign='center';ctx.fillStyle='#ffffff';ctx.font=fontTools.font('stats',p.fontSize,400,c.fonts);
       for(const key of ['total','kills','booyah']){
         const value=String(t[key]??0);ctx.fillText(i===0&&key==='booyah'?value.padStart(2,'0'):value,p[key],p.statsY);
