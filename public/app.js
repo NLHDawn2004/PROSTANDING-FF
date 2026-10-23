@@ -1859,6 +1859,7 @@ function renderFFPTMarkers(host,coords){
   }
 }
 function renderBoard() {
+  window.StandingsPreview?.refresh();
   const badge=document.querySelector('.ui-data-badge');
   if(badge){const count=state.teams.size;badge.textContent=count?count+' đội':'Chưa có dữ liệu';badge.classList.toggle('has-data',count>0);}
   const ffpt=document.querySelector('#scoreboard').classList.contains('standing-ffpt');

@@ -11,5 +11,6 @@ test('preview requires authenticated publishing, gives token link and serves cur
   assert.match(url,/^\/broadcast\/[a-f0-9]{48}$/);const page=await fetch(base+url);assert.equal(page.status,200);assert.match(await page.text(),/object-fit:contain/);
   const frame=await fetch(base+url+'.png');assert.equal(frame.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await frame.arrayBuffer()),png);
   const next=await fetch(base+'/api/broadcast/mvp',{method:'POST',headers:{authorization:'test'},body:png});assert.equal((await next.json()).url,url);
+  const board=await fetch(base+'/api/broadcast/standings',{method:'POST',headers:{authorization:'test'},body:png});assert.equal(board.status,200);const boardUrl=(await board.json()).url;assert.notEqual(boardUrl,url);assert.equal((await fetch(base+boardUrl+'.png')).status,200);
  }finally{await new Promise(r=>server.close(r));}
 });

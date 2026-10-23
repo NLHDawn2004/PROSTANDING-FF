@@ -3,7 +3,7 @@ function createBroadcast(){
  const channels=new Map(),tokens=new Map();
  const send=(res,status,body,type='application/json')=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(body);};
  return async function(req,res,url,authenticated=false){
-  const write=url.pathname.match(/^\/api\/broadcast\/(mvp|h2h)$/);
+  const write=url.pathname.match(/^\/api\/broadcast\/(mvp|h2h|standings)$/);
   if(write&&req.method==='POST'&&authenticated){
    if(req.headers.origin&&req.headers.origin!==url.origin){send(res,403,'{"error":"Invalid origin"}');return true;}
    let size=0;const chunks=[];
