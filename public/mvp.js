@@ -88,7 +88,7 @@
    ready=players.length>0&&!loading;q('mvpDownload').disabled=!ready;
   }catch(error){if(token===revision)message(error.message);}
  }
- api.refresh=()=>{if(q('mvpDetails').open)render();else{ready=false;q('mvpDownload').disabled=true;}};
+ api.refresh=render;
  q('mvpDetails').addEventListener('toggle',()=>{if(q('mvpDetails').open)render();});
  q('mvpRefresh').onclick=render;
  const resetButton=document.createElement('button');resetButton.id='mvpReset';resetButton.type='button';resetButton.textContent='Khôi phục mặc định';q('mvpDownload').after(resetButton);

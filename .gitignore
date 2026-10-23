@@ -8,3 +8,6 @@ node_modules/
 accounts.json
 # Legacy deployment templates; this tool requires a Node server
 .github/workflows/
+
+# Private local preview frames and signing secret
+.broadcast/

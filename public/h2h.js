@@ -82,7 +82,7 @@
   finally{busy=false;q('h2hFetch').disabled=false;q('h2hReset').disabled=false;q('h2hExport').disabled=!ready;}
  };
  for(const id of ['h2hLeft','h2hRight','h2hMode'])q(id).onchange=render;
- q('h2hIds').onkeydown=event=>{if(event.key==='Enter')q('h2hFetch').click();};q('h2hDraw').onclick=render;
+ q('h2hIds').onkeydown=event=>{if(event.key==='Enter')q('h2hFetch').click();};q('h2hDraw').onclick=render;api.refresh=render;
  q('h2hExport').onclick=()=>{if(!ready||busy)return;canvas.toBlob(blob=>{if(!blob){status('Không tạo được PNG.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TEAM-HEAD-TO-HEAD.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},'image/png');};
  q('h2hReset').onclick=()=>{if(busy||!confirm('Xóa Match ID và dữ liệu so sánh, đưa tab này về mặc định?'))return;teams=[];q('h2hIds').value='';q('h2hLeft').replaceChildren();q('h2hRight').replaceChildren();q('h2hMode').value='total';render();};
 })(typeof window!=='undefined'?window:globalThis);
