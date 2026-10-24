@@ -15,7 +15,7 @@
   return names;
  }
  const displayName=(player,names)=>names.get(String(player.playerId).trim())||player.name;
- function matchesFromResponses(responses,groupsOf){const matches=[];for(const batch of responses)groupsOf(batch.data).forEach((group,i)=>matches.push({gameNumber:matches.length+1,matchId:String(group.match_id||batch.requestedIds[i]||''),teams:Array.isArray(group.team_stats)?group.team_stats:[]}));return matches;}
+ function matchesFromResponses(responses,groupsOf){const matches=[];for(const batch of responses)groupsOf(batch.data).forEach((group,i)=>matches.push({gameNumber:matches.length+1,matchId:String(group.match_id||batch.requestedIds[i]||''),source:group,teams:Array.isArray(group.team_stats)?group.team_stats:[]}));return matches;}
  const api={photoId,topThree,stat,parseNames,displayName,matchesFromResponses};
  if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}
  root.MVP=api;
@@ -61,7 +61,9 @@
  restore.catch(()=>message('Không mở được kho ảnh đã lưu. Có thể chọn ảnh để dùng trong phiên này.'));
  const background=loadImage('mvp-template.png');background.catch(()=>{});
  function textFit(text,x,y,width,size,color,weight=800){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=`${weight} ${size--}px Arial`; }while(ctx.measureText(text).width>width&&size>10);ctx.fillText(text,x,y);}
+ api.getMatches=()=>mvpMatches;api.photoFor=id=>photos.get(String(id??'').trim());api.nameFor=p=>displayName({playerId:String(p.player_id??''),name:getPlayerName(p)},names);
  async function render(){
+  window.BooyahTeam?.refresh();
   const token=++revision;ready=false;q('mvpDownload').disabled=true;
   try{
    const players=topThree(sortPlayers(buildPlayerData(null,mvpMatches))).map(p=>({...p,name:displayName(p,names)}));
@@ -106,7 +108,7 @@
    for(const id of ['mvpMatchIds','mvpTitle','mvpPhotos','mvpNamesFile'])q(id).value='';
    q('mvpFetchStatus').textContent='';nameStatus();await render();
    message(errors.length?'Đã reset phiên MVP hiện tại. '+errors.join(' '):'Đã khôi phục mặc định MVP. Nhập Match ID mới để bắt đầu.');
-  }finally{controls.forEach(control=>{control.disabled=false;});q('mvpDownload').disabled=!ready;}
+  }finally{controls.forEach(control=>{control.disabled=false;});q('mvpDownload').disabled=!ready;window.BooyahTeam?.refresh();}
  };
  q('mvpFetch').onclick=async()=>{
   if(loading)return;

@@ -10,7 +10,7 @@ function createBroadcast(options={}){
  async function body(req,max){let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>max)throw Error('Dữ liệu vượt giới hạn tải lên.');chunks.push(chunk);}return Buffer.concat(chunks);}
  const viewer=()=>fs.readFileSync(path.join(__dirname,'public/broadcast-viewer.js'));
  return async function(req,res,url,authenticated=false){
-  const write=url.pathname.match(/^\/api\/broadcast\/(mvp|h2h|standings)(\/control)?$/);
+  const write=url.pathname.match(/^\/api\/broadcast\/(mvp|h2h|standings|booyah)(\/control)?$/);
   if(write&&req.method==='POST'&&authenticated){
    if(req.headers.origin&&req.headers.origin!==url.origin){send(res,403,'{"error":"Invalid origin"}');return true;}
    try{

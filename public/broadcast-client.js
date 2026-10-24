@@ -1,6 +1,6 @@
 (function(){
  const channels=new Map(),defaults={effect:'fade',duration:600,onOpen:true,onUpdate:true,visible:true,replay:''};
- const labels={standings:'Bảng điểm',mvp:'MVP',h2h:'So sánh đội'};
+ const labels={standings:'Bảng điểm',mvp:'MVP',h2h:'So sánh đội',booyah:'MVP đội BOOYAH'};
  window.BroadcastPreview={mount(kind,canvas,anchor,prepare){
   const panel=document.createElement('fieldset');panel.className='preview-controls';
   panel.innerHTML=`<legend>Preview · ${labels[kind]}</legend><div class="preview-buttons"><button type="button" data-action="open">Preview</button><button type="button" data-action="replay">Phát lại animation</button><button type="button" data-action="visibility">Ẩn Preview</button><button type="button" data-action="sync">Đồng bộ ngay</button></div><div class="preview-options"><label>Animation<select data-setting="effect"><option value="none">Không hiệu ứng</option><option value="fade">Mờ dần</option><option value="left">Trượt từ trái</option><option value="right">Trượt từ phải</option><option value="up">Trượt lên</option><option value="zoom">Phóng nhẹ</option></select></label><label>Thời gian (ms)<input type="number" min="100" max="5000" step="100" data-setting="duration"></label><label><input type="checkbox" data-setting="onOpen"> Khi mở Preview</label><label><input type="checkbox" data-setting="onUpdate"> Khi dữ liệu đổi</label></div><p class="preview-status" role="status" aria-live="polite"></p><div class="preview-link"></div><small>Giữ trang điều khiển mở để tự đồng bộ. PNG tải xuống là ảnh tĩnh.</small>`;
