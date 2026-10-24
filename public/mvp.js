@@ -52,6 +52,7 @@
  };
  q('mvpClearNames').onclick=()=>{names=new Map();try{localStorage.removeItem('ff-mvp-names');}catch{}nameStatus();render();};
  BroadcastPreview.mount('mvp',canvas,q('mvpDownload'));
+ const titleFonts=TitleFonts.mount('mvp',q('mvpTitle').parentElement.parentElement,render,{input:q('mvpTitle')});
  const message=text=>{q('mvpStatus').textContent=text;};
  const loadImage=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Không đọc được ảnh MVP.'));img.src=src;});
  const dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open('ff-mvp-portraits',1);req.onupgradeneeded=()=>req.result.createObjectStore('photos');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
@@ -60,17 +61,18 @@
  const restore=dbPromise.then(db=>new Promise((resolve,reject)=>{const req=db.transaction('photos').objectStore('photos').openCursor();req.onsuccess=()=>{const cursor=req.result;if(!cursor){resolve();return;}remember(cursor.key,cursor.value);cursor.continue();};req.onerror=()=>reject(req.error);}));
  restore.catch(()=>message('Không mở được kho ảnh đã lưu. Có thể chọn ảnh để dùng trong phiên này.'));
  const background=loadImage('mvp-template.png');background.catch(()=>{});
- function textFit(text,x,y,width,size,color,weight=800){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=`${weight} ${size--}px Arial`; }while(ctx.measureText(text).width>width&&size>10);ctx.fillText(text,x,y);}
+ function textFit(text,x,y,width,size,color,weight=800,isTitle=false){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=isTitle?titleFonts.font(size--,weight):`${weight} ${size--}px Arial`; }while(ctx.measureText(text).width>width&&size>10);ctx.fillText(text,x,y);}
  api.getMatches=()=>mvpMatches;api.photoFor=id=>photos.get(String(id??'').trim());api.nameFor=p=>displayName({playerId:String(p.player_id??''),name:getPlayerName(p)},names);
  async function render(){
   window.BooyahTeam?.refresh();
   const token=++revision;ready=false;q('mvpDownload').disabled=true;
   try{
+   await titleFonts.load();
    const players=topThree(sortPlayers(buildPlayerData(null,mvpMatches))).map(p=>({...p,name:displayName(p,names)}));
    const [bg,portraits]=await Promise.all([background,Promise.all(players.map(p=>photos.has(p.playerId)?loadImage(photos.get(p.playerId)).catch(()=>null):null))]);
    if(token!==revision)return;
    ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
-   textFit(q('mvpTitle').value,1112,260,350,32,'#10234e');
+   textFit(q('mvpTitle').value,1112,260,350,32,'#10234e',800,true);
    const positions=[{x:311,w:407,top:330,nameY:855,statsY:902,color:'#7d087b'},{x:784,w:390,top:350,nameY:853,statsY:899,color:'#152e87'},{x:1225,w:389,top:350,nameY:853,statsY:899,color:'#152e87'}];
    q('mvpPlayers').replaceChildren();
    positions.forEach((pos,i)=>{
@@ -103,7 +105,7 @@
    await restore.catch(()=>{});
    try{const db=await dbPromise;await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}catch{errors.push('Không xóa được kho ảnh đã lưu trong trình duyệt.');}
    for(const key of ['ff-mvp-title','ff-mvp-names'])try{localStorage.removeItem(key);}catch{errors.push('Không xóa được tùy chỉnh đã lưu trong trình duyệt.');}
-   revision++;ready=false;mvpMatches=[];names=new Map();
+   titleFonts.reset();revision++;ready=false;mvpMatches=[];names=new Map();
    photos.forEach(url=>URL.revokeObjectURL(url));photos.clear();
    for(const id of ['mvpMatchIds','mvpTitle','mvpPhotos','mvpNamesFile'])q(id).value='';
    q('mvpFetchStatus').textContent='';nameStatus();await render();

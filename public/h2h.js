@@ -27,6 +27,7 @@
  const tab=document.createElement('button');tab.type='button';tab.className='tab';tab.dataset.tab='h2h';tab.textContent='So sánh đội';document.querySelector('.workspace-tabs').appendChild(tab);
  const q=id=>section.querySelector('#'+id),canvas=q('h2hCanvas'),ctx=canvas.getContext('2d');
  BroadcastPreview.mount('h2h',canvas,q('h2hExport'));
+ const titleFonts=TitleFonts.mount('h2h',section.querySelector('.h2h-controls'),render);
  const status=text=>{q('h2hStatus').textContent=text;};
  const image=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Không tải được ảnh nền so sánh.'));img.src=src;});
  const background=image('h2h-template.png');background.catch(()=>{});
@@ -35,11 +36,13 @@
  async function render(){
   const token=++revision;ready=false;q('h2hExport').disabled=true;
   try{
+   await titleFonts.load();
    const left=teams.find(t=>t.key===q('h2hLeft').value),right=teams.find(t=>t.key===q('h2hRight').value);
    const selected=left&&right&&left!==right?[left,right]:[];
    const [bg,logos]=await Promise.all([background,Promise.all(selected.map(t=>{const src=rankingTeamLogo(t);return src?image(src).catch(()=>null):null;}))]);
    if(token!==revision)return;
    ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
+   ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';let titleSize=32;ctx.font=titleFonts.font(titleSize);while(titleSize>10&&ctx.measureText(titleFonts.text()).width>640){ctx.font=titleFonts.font(--titleSize);}ctx.fillText(titleFonts.text(),960,300);
    if(!selected.length){BroadcastPreview.update('h2h');status(teams.length?'Hãy chọn hai đội khác nhau.':'Nhập Match ID để tải danh sách đội.');return;}
    selected.forEach((team,i)=>{const x=i?1535:392,logo=logos[i];if(logo){const scale=Math.min(355/logo.width,530/logo.height);ctx.drawImage(logo,x-logo.width*scale/2,630-logo.height*scale/2,logo.width*scale,logo.height*scale);}else text('Chưa có logo',x,635,350,30,'#fff');text(team.name,x,958,350,35,'#102650');});
    const mode=q('h2hMode').value;
@@ -84,5 +87,5 @@
  for(const id of ['h2hLeft','h2hRight','h2hMode'])q(id).onchange=render;
  q('h2hIds').onkeydown=event=>{if(event.key==='Enter')q('h2hFetch').click();};q('h2hDraw').onclick=render;api.refresh=render;
  q('h2hExport').onclick=()=>{if(!ready||busy)return;canvas.toBlob(blob=>{if(!blob){status('Không tạo được PNG.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TEAM-HEAD-TO-HEAD.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},'image/png');};
- q('h2hReset').onclick=()=>{if(busy||!confirm('Xóa Match ID và dữ liệu so sánh, đưa tab này về mặc định?'))return;teams=[];q('h2hIds').value='';q('h2hLeft').replaceChildren();q('h2hRight').replaceChildren();q('h2hMode').value='total';render();};
+ q('h2hReset').onclick=()=>{if(busy||!confirm('Xóa Match ID và dữ liệu so sánh, đưa tab này về mặc định?'))return;titleFonts.reset();teams=[];q('h2hIds').value='';q('h2hLeft').replaceChildren();q('h2hRight').replaceChildren();q('h2hMode').value='total';render();};
 })(typeof window!=='undefined'?window:globalThis);

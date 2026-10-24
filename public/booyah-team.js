@@ -17,21 +17,22 @@
  const q=id=>host.querySelector('#'+id),canvas=q('booyahCanvas'),ctx=canvas.getContext('2d');let revision=0,ready=false,lastSignature='';
  const image=src=>new Promise((resolve,reject)=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Không tải được ảnh BOOYAH.'));img.src=src;});
  const background=image('booyah-team-template.png');background.catch(()=>{});
+ const titleFonts=TitleFonts.mount('booyah',host,render,{fallback:'gff-vn-black'});
  const status=text=>{q('booyahStatus').textContent=text;};
  BroadcastPreview.mount('booyah',canvas,q('booyahDownload'));
- function fit(text,x,y,width,size,color){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=RankingFonts.font('name',size--,900,{name:'gff-vn-black'});}while(size>9&&ctx.measureText(String(text)).width>width);ctx.fillText(String(text),x,y);}
+ function fit(text,x,y,width,size,color,isTitle=false){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=isTitle?titleFonts.font(size--):RankingFonts.font('name',size--,900,{name:'gff-vn-black'});}while(size>9&&ctx.measureText(String(text)).width>width);ctx.fillText(String(text),x,y);}
  async function render(){
   const token=++revision;ready=false;q('booyahDownload').disabled=true;
   const matches=MVP.getMatches(),signature=matches.map(m=>m.matchId+':'+m.gameNumber+':'+matchTime(m)).join('|');
   if(signature!==lastSignature){const previous=q('booyahMatch').value;q('booyahMatch').replaceChildren();matches.forEach((match,i)=>{const option=document.createElement('option');option.value=String(i);option.textContent=matchLabel(match);q('booyahMatch').appendChild(option);});if([...q('booyahMatch').options].some(o=>o.value===previous))q('booyahMatch').value=previous;lastSignature=signature;}
   const match=matches[Number(q('booyahMatch').value)];q('booyahRoster').replaceChildren();
   try{
-   await RankingFonts.load({name:'gff-vn-black'});const bg=await background;if(token!==revision)return;
+   await titleFonts.load();await RankingFonts.load({name:'gff-vn-black'});const bg=await background;if(token!==revision)return;
    ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
    const positions=[{x:269,y:314,nameY:614,statsX:600,statsY:433},{x:1045,y:314,nameY:614,statsX:1376,statsY:433},{x:269,y:704,nameY:1004,statsX:600,statsY:823},{x:1052,y:704,nameY:1004,statsX:1383,statsY:823}];
    for(const p of positions){ctx.fillStyle='#f267fc';ctx.fillRect(p.x+12,p.nameY-13,205,27);}
    if(!match){status('Chưa có trận. Nhập Match ID và bấm Lấy MVP ở phía trên.');BroadcastPreview.update('booyah');return;}
-   fit('TRẬN '+match.gameNumber,1289,254,300,38,'#17305c');
+   fit(titleFonts.text().trim()||'TRẬN '+match.gameNumber,1289,254,300,38,'#17305c',true);
    let team;try{team=winner(match);}catch(error){status(error.message);BroadcastPreview.update('booyah');return;}
    const players=getPlayersFromTeam(team).slice(0,4);
    const [portraits,logo]=await Promise.all([Promise.all(players.map(p=>{const src=MVP.photoFor(p.player_id);return src?image(src).catch(()=>null):null;})),(async()=>{const src=rankingTeamLogo({name:team.team_name||String(team.team_id||''),key:getTeamKey(team)});return src?image(src).catch(()=>null):null;})()]);
