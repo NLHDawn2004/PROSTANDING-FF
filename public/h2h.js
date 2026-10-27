@@ -62,8 +62,8 @@
   const name=button.dataset.tab;
   document.querySelectorAll('.workspace-tabs .tab').forEach(item=>item.classList.toggle('active',item===button));
   document.querySelectorAll('.workspace > .tab-content').forEach(item=>item.classList.toggle('active',item.id===name+'Tab'));
-  document.body.classList.toggle('mvp-active',name==='mvp'||name==='h2h');
-  if(name==='templates')renderTemplates();if(name==='designer')resizeBoard();if(name==='mvp')MVP.refresh();if(name==='h2h')render();
+  document.body.classList.toggle('mvp-active',name==='mvp'||name==='h2h'||name==='booyah');
+  if(name==='templates')renderTemplates();if(name==='designer')resizeBoard();if(name==='mvp')MVP.refresh();if(name==='h2h')render();if(name==='booyah')BooyahTeam.refresh();
  };});
  q('h2hFetch').onclick=async()=>{
   if(busy)return;

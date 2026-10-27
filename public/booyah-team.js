@@ -13,7 +13,9 @@
  const matchLabel=m=>`${m.matchId} · ${matchTime(m)} · Trận ${m.gameNumber}`;
  const api={winner,stats,matchLabel};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.BooyahTeam=api;
  const host=document.createElement('section');host.className='booyah-team';host.innerHTML='<h2>MVP đội BOOYAH</h2><p>Chọn một trận đã tải ở mục Match ID cho MVP. Hiển thị thông số của bốn tuyển thủ đội thắng trong riêng trận đó.</p><label>Chọn Match ID · thời gian · số trận<select id="booyahMatch"></select></label><div class="booyah-actions"><button id="booyahUpdate" type="button">Cập nhật đội BOOYAH</button><button id="booyahDownload" type="button" disabled>Xuất BOOYAH PNG</button></div><p id="booyahStatus" role="status" aria-live="polite"></p><div id="booyahRoster"></div><canvas id="booyahCanvas" width="1920" height="1080" aria-label="Thông số bốn tuyển thủ đội BOOYAH"></canvas>';
- document.querySelector('#mvpTab').appendChild(host);
+ host.id='booyahTab';host.classList.add('tab-content');document.querySelector('.workspace').appendChild(host);
+ const tab=document.createElement('button');tab.type='button';tab.className='tab';tab.dataset.tab='booyah';tab.textContent='MVP đội BOOYAH';document.querySelector('.workspace-tabs').appendChild(tab);
+ const editSource=document.createElement('button');editSource.type='button';editSource.textContent='Nhập Match ID và ảnh trong tab MVP';editSource.onclick=()=>document.querySelector('.workspace-tabs [data-tab="mvp"]').click();host.querySelector('h2').after(editSource);
  const q=id=>host.querySelector('#'+id),canvas=q('booyahCanvas'),ctx=canvas.getContext('2d');let revision=0,ready=false,lastSignature='';
  const image=src=>new Promise((resolve,reject)=>{const img=new Image();img.crossOrigin='anonymous';img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Không tải được ảnh BOOYAH.'));img.src=src;});
  const background=image('booyah-team-template.png');background.catch(()=>{});
@@ -31,7 +33,7 @@
    ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
    const positions=[{x:269,y:314,nameY:614,statsX:600,statsY:433},{x:1045,y:314,nameY:614,statsX:1376,statsY:433},{x:269,y:704,nameY:1004,statsX:600,statsY:823},{x:1052,y:704,nameY:1004,statsX:1383,statsY:823}];
    for(const p of positions){ctx.fillStyle='#f267fc';ctx.fillRect(p.x+12,p.nameY-13,205,27);}
-   if(!match){status('Chưa có trận. Nhập Match ID và bấm Lấy MVP ở phía trên.');BroadcastPreview.update('booyah');return;}
+   if(!match){status('Chưa có trận. Nhập Match ID và bấm Lấy MVP trong tab MVP.');BroadcastPreview.update('booyah');return;}
    fit(titleFonts.text().trim()||'TRẬN '+match.gameNumber,1289,254,300,38,'#17305c',true);
    let team;try{team=winner(match);}catch(error){status(error.message);BroadcastPreview.update('booyah');return;}
    const players=getPlayersFromTeam(team).slice(0,4);
@@ -45,7 +47,7 @@
     const values=stats(player);[[p.statsX,p.statsY],[p.statsX+208,p.statsY],[p.statsX,p.statsY+121],[p.statsX+208,p.statsY+121]].forEach(([x,y],j)=>fit(MVP.stat(values[j]),x,y,j%2?176:166,47,'#fff'));
     const row=document.createElement('p');row.textContent=`${name} · ID ${player.player_id??'—'} · ELIMS ${MVP.stat(values[0])} · DAMAGE ${MVP.stat(values[1])} · KNOCKDOWN ${MVP.stat(values[2])} · ASSISTS ${MVP.stat(values[3])}`;q('booyahRoster').appendChild(row);
    }
-   status(`${team.team_name||team.team_id||'Đội BOOYAH'} · Trận ${match.gameNumber} · ${players.length} tuyển thủ.`+(portraits.some(p=>!p)?' Có tuyển thủ chưa có ảnh; thêm ảnh theo ID ở mục MVP phía trên.':'')+(getPlayersFromTeam(team).length>4?' Chỉ hiển thị 4 tuyển thủ đầu tiên trong đội.':''));
+   status(`${team.team_name||team.team_id||'Đội BOOYAH'} · Trận ${match.gameNumber} · ${players.length} tuyển thủ.`+(portraits.some(p=>!p)?' Có tuyển thủ chưa có ảnh; thêm ảnh theo ID trong tab MVP.':'')+(getPlayersFromTeam(team).length>4?' Chỉ hiển thị 4 tuyển thủ đầu tiên trong đội.':''));
    ready=players.length>0;q('booyahDownload').disabled=!ready;BroadcastPreview.update('booyah');
   }catch(error){if(token===revision)status(error.message);}
  }
