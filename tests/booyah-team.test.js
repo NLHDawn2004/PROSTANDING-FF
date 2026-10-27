@@ -4,7 +4,13 @@ test('winner is rank one or explicit booyah, never highest total',()=>{
  const team={team_name:'Winner',match_rank:'1'};assert.equal(b.winner({teams:[{team_name:'Loser',match_rank:2,total_score:100},team]}),team);
  assert.equal(b.winner({teams:[{booyah:1}]}).booyah,1);
  assert.throws(()=>b.winner({teams:[{match_rank:2}]}),/BOOYAH/);
- assert.throws(()=>b.winner({teams:[{match_rank:1},{booyah:1}]}),/nhiều/);
+ assert.throws(()=>b.winner({teams:[{booyah:1},{booyah:1}]}),/nhiều/);
+});
+test('explicit BOOYAH wins over match_rank including duplicate rank-one teams',()=>{
+ const actual={team_name:'Winner',match_rank:3,booyah:1};
+ assert.equal(b.winner({teams:[{match_rank:1,booyah:0},actual]}),actual);
+ assert.equal(b.winner({teams:[{match_rank:1,booyah:0},{...actual,match_rank:1}]}).team_name,'Winner');
+ assert.throws(()=>b.winner({teams:[{match_rank:1,booyah:0}]}),/BOOYAH/);
 });
 test('dropdown places game number after time and never invents a time',()=>{
  assert.equal(b.matchLabel({matchId:'123',gameNumber:2,source:{match_time:'20:30'}}),'123 · 20:30 · Trận 2');

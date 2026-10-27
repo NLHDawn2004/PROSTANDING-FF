@@ -1,6 +1,6 @@
 (function(root){
  'use strict';
- function winner(match){const winners=(match?.teams||[]).filter(t=>Number(t.match_rank)===1||Number(t.booyah)===1);if(winners.length!==1)throw Error(winners.length?'Trận có nhiều đội được đánh dấu BOOYAH; cần kiểm tra dữ liệu.':'Chưa có đội BOOYAH trong dữ liệu trận này.');return winners[0];}
+ function winner(match){const teams=match?.teams||[],hasBooyah=teams.some(t=>t.booyah!==null&&t.booyah!==undefined&&t.booyah!=='');const winners=teams.filter(t=>hasBooyah?Number(t.booyah)===1:Number(t.match_rank)===1);if(winners.length!==1)throw Error(winners.length?'Trận có nhiều đội được đánh dấu BOOYAH; cần kiểm tra dữ liệu.':'Chưa có đội BOOYAH trong dữ liệu trận này.');return winners[0];}
  const numeric=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?Number(n):null;
  const stats=p=>[p.kills,p.damage,p.knock_down??p.knockdown,p.assists].map(numeric);
  function matchTime(match){
