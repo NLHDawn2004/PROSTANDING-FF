@@ -1,3 +1,5 @@
 .booyah-team{background:white;border:1px solid #dce2ec;border-radius:16px;margin-top:24px;padding:20px;color:#17243b;display:grid;gap:14px}.booyah-team h2,.booyah-team p{margin:0;line-height:1.5}.booyah-team label{display:grid;gap:8px;font-weight:600}.booyah-team select{padding:11px;border:1px solid #ccd5e2;border-radius:8px;background:white;color:#17243b;max-width:100%}.booyah-actions{display:flex;gap:12px;flex-wrap:wrap}.booyah-team button{padding:10px 16px;background:#243fc0;color:white;border:0;border-radius:8px;cursor:pointer}.booyah-team button:disabled{opacity:.45}.booyah-team canvas{width:100%;height:auto;display:block}.booyah-team .preview-controls{margin:0}#booyahRoster{font-size:13px;overflow-wrap:anywhere}
 
 .booyah-team.tab-content{display:none;margin-top:0}.booyah-team.tab-content.active{display:grid}
+
+#booyahIds{padding:11px;border:1px solid #ccd5e2;border-radius:8px;width:100%;box-sizing:border-box;color:#17243b;background:white}#booyahFetch{margin-top:12px}
