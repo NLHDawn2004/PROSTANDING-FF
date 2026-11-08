@@ -25,7 +25,7 @@ function middleware(accounts){
  const json=(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
  return async(req,res,url)=>{
   res.setHeader('Cache-Control','no-store');
-  const secure=process.env.VERCEL||req.socket.encrypted?'; Secure':'';
+  const secure=process.env.VERCEL||process.env.RENDER==='true'||req.socket.encrypted?'; Secure':'';
   const token=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('ff_session='))?.slice(11);
   const user=auth.user(token);
   if(req.method==='POST'&&['/api/login','/api/logout'].includes(url.pathname)){
