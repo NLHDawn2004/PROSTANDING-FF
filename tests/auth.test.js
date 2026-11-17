@@ -42,3 +42,40 @@ test('HTTP gate protects pages and APIs; login, cookie and logout work',async()=
   assert.equal((await fetch(base+'/api/match',{headers})).status,401);
  }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+test('Render HTTPS login checks the public origin and issues a secure cookie', async t => {
+ const previousRender = process.env.RENDER;
+ const previousAccounts = process.env.AUTH_ACCOUNTS_JSON;
+ process.env.RENDER = 'true';
+ process.env.AUTH_ACCOUNTS_JSON = JSON.stringify({tester: hashPassword('pw')});
+ t.after(() => {
+  if (previousRender === undefined) delete process.env.RENDER;
+  else process.env.RENDER = previousRender;
+  if (previousAccounts === undefined) delete process.env.AUTH_ACCOUNTS_JSON;
+  else process.env.AUTH_ACCOUNTS_JSON = previousAccounts;
+ });
+
+ const server = require('../server');
+ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+ t.after(() => new Promise(resolve => server.close(resolve)));
+ const {request} = require('node:http');
+ const endpoint = 'http://127.0.0.1:' + server.address().port + '/api/login';
+ const host = 'prostanding-test.onrender.com';
+ const login = origin => new Promise((resolve, reject) => {
+  const req = request(endpoint, {
+   method: 'POST',
+   headers: {Host: host, Origin: origin},
+  }, res => {
+   res.resume();
+   res.on('end', () => resolve(res));
+   res.on('error', reject);
+  });
+  req.on('error', reject);
+  req.end(JSON.stringify({username: 'tester', password: 'pw'}));
+ });
+
+ assert.equal((await login('https://example.org')).statusCode, 403);
+ const response = await login('https://' + host);
+ assert.equal(response.statusCode, 200);
+ assert.match(response.headers['set-cookie'][0], /; Secure(?:;|$)/);
+});

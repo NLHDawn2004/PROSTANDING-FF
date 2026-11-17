@@ -759,10 +759,14 @@ const server =
       res
     ) => {
       try {
+        const protocol =
+          process.env.VERCEL || process.env.RENDER === "true" || req.socket.encrypted
+            ? "https"
+            : "http";
         const url =
           new URL(
             req.url,
-            `${process.env.VERCEL?'https':'http'}://${req.headers.host || "localhost"}`
+            `${protocol}://${req.headers.host || "localhost"}`
           );
 
 
