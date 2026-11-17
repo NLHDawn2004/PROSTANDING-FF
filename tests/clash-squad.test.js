@@ -1,5 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const cs=require('../public/clash-squad');
+test('cumulative totals merge players by ID and recalculate KD rather than sum rates',()=>{
+ const matches=[{id:'1',teams:[{team_name:'A',wins:6,losses:2,kills:4,damage:1000,player_data:[{player_id:1,player_name:'P',kills:4,death:0,damage:1000,knock_down:5,rescue_members:1,kd:4,headshot_kill_rate:'50%'}]}]},{id:'2',teams:[{team_name:'A',wins:3,losses:6,kills:3,damage:700,player_data:[{player_id:1,player_name:'P2',kills:3,death:2,damage:700,knock_down:4,rescue_members:2,kd:1.5,headshot_kill_rate:'33%'}]}]}];
+ const result=cs.aggregate(matches);assert.equal(result.teams.length,1);assert.equal(result.teams[0].games,2);assert.equal(result.teams[0].games_won,1);assert.equal(result.teams[0].games_lost,1);assert.equal(result.teams[0].wins,9);assert.equal(result.teams[0].losses,8);assert.equal(result.players[0].kills,7);assert.equal(result.players[0].death,2);assert.equal(result.players[0].kd,3.5);assert.equal(result.players[0].headshot_kill_rate,null);assert.equal(result.players[0].player_name,'P2');assert.equal(cs.perGame(result.players)[0].damage,850);
+ assert.equal(cs.aggregate([...matches,matches[0]]).teams[0].games,2);
+});
 test('exact Match IDs are validated and deduplicated as strings',()=>{
  assert.deepEqual(cs.ids('2121570587261974528, 2121570587261974528\n2121570587261974529'),['2121570587261974528','2121570587261974529']);
  assert.throws(()=>cs.ids('abc'));assert.throws(()=>cs.ids(''));
