@@ -38,3 +38,23 @@ test('weapon totals preserve missing counters instead of reporting a partial tot
  const result=cs.aggregateWeapons([{id:'1',teams:[{weapon:[{weapon:'AK',kills:0,damage:10}]},{weapon:[{weapon:'AK',damage:20}]}]}]);
  assert.equal(result[0].kills,null);assert.equal(result[0].damage,30);
 });
+
+test('skills combine all teams and matches and estimate selection per player appearance, not time',()=>{
+ const skill=(name,time)=>({skill:name,time});
+ const a={id:'1',teams:[{active_skills:[skill('A',99),skill('B',3)],player_data:[{player_id:'1',active_skills:[skill('A',50),skill('A',49)]},{player_id:'2',active_skills:[skill('B',3)]}]},{active_skills:[skill('A',2)],player_data:[{player_id:'3',active_skills:[skill('A',2)]},{player_id:'4',active_skills:[]}]}]};
+ const b={id:'2',teams:[{player_data:[{player_id:'1',active_skills:[skill('A',7)]},{player_id:'2',active_skills:[]}]}]};
+ const result=cs.aggregateSkills([a,b,a]).active_skills;
+ assert.equal(result.length,2);
+ const row=result.find(s=>s.skill==='A');assert.equal(row.time,108);assert.equal(row.equipped_appearances,3);assert.equal(row.player_appearances,6);assert.equal(row.estimated_pick_rate,'50%');
+ assert.equal(result.find(s=>s.skill==='B').estimated_pick_rate,'16.67%');
+});
+test('skills retain categories and report unknown rates if player skill data is incomplete',()=>{
+ const result=cs.aggregateSkills([{id:'1',teams:[{active_skills:[{skill:'A',time:8}],passive_skills:[{skill:'A',time:2}],player_data:[{active_skills:[{skill:'A',time:1}]},{}]}]}]);
+ assert.equal(result.active_skills[0].time,8);assert.equal(result.active_skills[0].estimated_pick_rate,null);assert.equal(result.active_skills[0].equipped_appearances,null);
+ assert.equal(result.passive_skills[0].time,2);assert.equal(result.passive_skills[0].estimated_pick_rate,null);
+ assert.deepEqual(result.pet_skills,[]);assert.deepEqual(cs.aggregateSkills([]).active_skills,[]);
+});
+test('skills do not report a full selection rate when player records are missing',()=>{
+ const result=cs.aggregateSkills([{id:'1',info:{number_of_player:8},teams:[{player_data:[{player_id:'1',active_skills:[{skill:'A',time:1}]}]}]}]);
+ assert.equal(result.active_skills[0].estimated_pick_rate,null);
+});
