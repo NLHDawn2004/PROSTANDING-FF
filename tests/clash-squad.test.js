@@ -23,3 +23,18 @@ test('supplemental endpoint failures preserve mandatory match and exact IDs',asy
  const fetcher=async(url,options)=>{calls.push({url,body:JSON.parse(options.body)});if(url!=='/api/match')return {ok:false,status:503,json:async()=>({ok:false,error:'Unavailable'})};return {ok:true,json:async()=>({ok:true,data:{status:'success',data:{match_info:[{match_id:id,mode:15}],team_stats:[{match_id:id,team_stats:[{team_name:'A',player_data:[{player_name:'P',death:0}]}]}]}}})};};
  const result=await cs.loadMatch(id,fetcher);assert.equal(result.players.length,1);assert.equal(result.errors.length,2);assert.equal(result.skills,null);assert.equal(result.weapons,null);calls.forEach(call=>assert.deepEqual(call.body.match_ids,[id]));
 });
+
+test('weapon totals combine all teams and matches once without counting player or supplemental copies',()=>{
+ const gun=(weapon,kills,damage)=>({weapon_id:weapon==='AK'?6:0,weapon,kills,damage});
+ const a={id:'1',teams:[{team_name:'A',weapon:[gun('AK',2,100),gun('AK-SUM',4,200)],player_data:[{weapon:[gun('AK',2,100)]}]},{team_name:'B',weapon:[gun('AK',3,150)],player_data:[]}],weapons:{data:{weapon:[gun('AK',5,250)]}}};
+ const b={id:'2',teams:[{team_name:'C',player_data:[{weapon:[gun('AK',1,50)]},{weapon:[gun('AK',2,75)]}]}]};
+ const result=cs.aggregateWeapons([a,b,a]);
+ assert.equal(result.length,2);
+ assert.deepEqual(result.find(r=>r.weapon==='AK'),gun('AK',8,375));
+ assert.deepEqual(result.find(r=>r.weapon==='AK-SUM'),gun('AK-SUM',4,200));
+ assert.deepEqual(cs.aggregateWeapons([]),[]);
+});
+test('weapon totals preserve missing counters instead of reporting a partial total as complete',()=>{
+ const result=cs.aggregateWeapons([{id:'1',teams:[{weapon:[{weapon:'AK',kills:0,damage:10}]},{weapon:[{weapon:'AK',damage:20}]}]}]);
+ assert.equal(result[0].kills,null);assert.equal(result[0].damage,30);
+});

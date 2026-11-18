@@ -49,7 +49,18 @@
   return {teams:teams.map((row,i)=>({match_rank:i+1,...row})),players:players.map((row,i)=>({match_rank:i+1,...row}))};
  }
  function perGame(rows){return rows.map(row=>{const result={...row};for(const key of counterFields)if(key in result)result[key]=result[key]===null?null:Math.round(result[key]/row.games*100)/100;return result;});}
- const api={ids,columns,display,extract,loadMatch,aggregate,perGame};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquad=api;
+ function aggregateWeapons(matches){
+  const seen=new Set(),rows=[];
+  for(const match of matches){
+   if(seen.has(match.id))continue;seen.add(match.id);
+   for(const team of match.teams){
+    if(Array.isArray(team.weapon)&&team.weapon.length)rows.push(team);
+    else rows.push(...(team.player_data||[]));
+   }
+  }
+  return nested(rows,'weapon').sort((a,b)=>(b.kills||0)-(a.kills||0)||(b.damage||0)-(a.damage||0));
+ }
+ const api={ids,columns,display,extract,loadMatch,aggregate,aggregateWeapons,perGame};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquad=api;
  const labels={games:'Số trận',games_won:'Trận thắng',games_lost:'Trận thua',games_drawn:'Trận hòa',win_rate:'Tỷ lệ thắng',round_difference:'Hiệu số vòng',match_id:'Match ID',mode:'Mã chế độ',form:'Hình thức (form)',match_name:'Tên trận',number_of_team:'Số đội',number_of_player:'Số tuyển thủ',match_results:'Kết quả',match_rank:'Thứ hạng',team_id:'ID đội',team_name:'Đội',match_ids:'Các trận',player_id:'ID tuyển thủ',player_name:'Tuyển thủ',kills:'ELIMS',death:'DEATHS',kd:'K/D',damage:'DAMAGE',knock_down:'KNOCKDOWN',headshot_kill_rate:'Tỷ lệ hạ gục headshot',rescue_members:'Cứu đồng đội',w_l:'Tỷ số thắng–thua',wins:'Vòng thắng',losses:'Vòng thua',weapon:'Vũ khí',weapon_id:'ID vũ khí',active_skills:'Kỹ năng chủ động',passive_skills:'Kỹ năng bị động',pet_skills:'Kỹ năng thú cưng',loadout_skills:'Loadout',player_data:'Chi tiết tuyển thủ',teammate_list:'Danh sách ID tuyển thủ',pos_change:'Thay đổi vị trí',skill:'Kỹ năng',time:'time (API)',rounds:'rounds (API)',info:'Thông tin',score:'Điểm',pick_times:'Lượt chọn (API)',pick_rate:'Tỷ lệ chọn (API)',ban_times:'Lượt cấm (API)',ban_rate:'Tỷ lệ cấm (API)'};
  const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;};
  const panel=el('section',undefined,'cs-panel');panel.id='clashSquad';panel.hidden=true;
@@ -87,6 +98,15 @@
  function render(){
   q('csSections').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===active)));
   const selected=matches.filter(m=>!q('csMatch').value||m.id===q('csMatch').value),content=q('csContent');content.replaceChildren();q('csScore').replaceChildren();
+  q('csTeam').disabled=q('csSearch').disabled=active==='weapons';
+  if(active==='weapons'&&selected.length){
+   const card=el('section',undefined,'cs-score');card.append(el('strong','Tổng cộng '+selected.length+' trận'));q('csScore').append(card);
+   content.append(el('p','Cộng dồn vũ khí của tất cả đội trong các trận đã chọn. Mỗi loại vũ khí hiển thị một dòng.','cs-note'));
+   block(content,'Vũ khí cộng dồn',aggregateWeapons(selected));
+   content.append(el('p','Các dòng có hậu tố -SUM là nhóm tổng do API cung cấp, được giữ riêng với các biến thể để tránh cộng trùng.','cs-note'));
+   for(const match of selected)for(const error of match.errors)content.append(el('p',match.id+': '+error,'cs-note'));
+   return;
+  }
   if(selected.length&&!q('csMatch').value&&active!=='raw'){renderCombined(selected,content);return;}
   for(const match of selected){
    const score=el('section',undefined,'cs-score');score.append(el('strong','Match '+match.id));const results=match.info.match_results||[];score.append(el('p',results.map(t=>`${t.team_name}: ${display(t.score)}`).join('   —   ')||'Chưa có tỷ số.'));q('csScore').append(score);
