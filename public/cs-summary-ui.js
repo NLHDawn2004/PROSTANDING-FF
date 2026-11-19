@@ -47,17 +47,21 @@
  q('cssGroup').onchange=()=>{scopes();render();};q('cssScope').onchange=()=>{pages();render();};q('cssPage').onchange=q('cssFont').onchange=q('cssUpdate').onclick=render;
  q('cssDownload').onclick=()=>{if(!ready||busy)return;canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='SUMARY-tu-chien.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},'image/png');};
  q('cssReset').onclick=()=>{matches=[];q('cssGroup').replaceChildren();q('cssPage').replaceChildren();q('cssIds').value='';q('cssScope').replaceChildren();q('cssFont').value='gff-vn-black';render();};
- const common=document.createElement('form');common.className='cs-fetch';common.innerHTML='<label>Match ID dùng chung · MVP và SUMARY<textarea id="overlayMatchIds" rows="2" placeholder="Nhập các Match ID, ngăn cách bằng dấu phẩy"></textarea></label><button type="submit">Lấy dữ liệu cho MVP và SUMARY</button>';
- const commonStatus=document.createElement('p');commonStatus.setAttribute('role','status');commonStatus.setAttribute('aria-live','polite');commonStatus.textContent='Nhập Match ID ở đây để cập nhật cả hai tab.';nav.before(common,commonStatus);
+ const common=document.createElement('form');common.className='cs-fetch';common.innerHTML='<label>Match ID dùng chung · Tất cả tab Tử chiến<textarea id="overlayMatchIds" rows="2" placeholder="Nhập các Match ID, ngăn cách bằng dấu phẩy"></textarea></label><button type="submit">Lấy dữ liệu Tử chiến</button>';
+ const commonStatus=document.createElement('p');commonStatus.setAttribute('role','status');commonStatus.setAttribute('aria-live','polite');commonStatus.textContent='Nhập Match ID một lần để cập nhật Bảng tổng, các tab thống kê, MVP và SUMARY.';const shared=document.createElement('section');shared.id='csSharedInputs';shared.className='cs-panel cs-shared-inputs';const heading=document.createElement('h2');heading.textContent='Dữ liệu dùng chung · Tử chiến';const assets=document.createElement('div');assets.className='cs-shared-assets';shared.append(heading,common,commonStatus,assets);document.querySelector('#clashSquad').before(shared);
+ for(const id of ['csmNames','csmLogos','csmPhotos']){const label=document.getElementById(id).parentElement,help=label.nextElementSibling?.tagName==='SMALL'?label.nextElementSibling:null;const group=document.createElement('div');group.append(label);if(help)group.append(help);assets.append(group);}
+ assets.append(document.getElementById('csmLogoStatus'));shared.append(document.getElementById('csExport'));
+ document.querySelector('#clashSquad > .cs-fetch').hidden=true;
+ q('cssNames').hidden=q('cssLogos').hidden=true;
  mvp.querySelector('form').hidden=true;host.querySelector('form').hidden=true;
  mvp.querySelector('h2 + p').textContent='MVP nhận dữ liệu từ ô Match ID dùng chung phía trên. Tự chọn người đầu bảng Player; bạn có thể đổi người.';
  let loading=false;
  common.onsubmit=async event=>{event.preventDefault();if(loading)return;loading=true;common.querySelector('button').disabled=true;common.querySelector('textarea').disabled=true;
   try{
-   const next=await root.ClashOverlayData.load(common.querySelector('textarea').value,fetch,(loaded,total)=>{commonStatus.textContent='Đang tải dữ liệu '+loaded+'/'+total+' trận...';});
-   const results=[];for(const apply of [()=>root.ClashSquadMVP.setMatches(next),()=>api.setMatches(next)]){try{await apply();results.push({status:'fulfilled'});}catch(reason){results.push({status:'rejected',reason});}}
-   const errors=results.flatMap((r,i)=>r.status==='rejected'?[(i?'SUMARY':'MVP')+': '+r.reason.message]:[]);
-   commonStatus.textContent='Đã tải '+next.length+' trận · '+api.groups(next).length+' cặp đấu. '+(errors.length?errors.join(' | '):'Đã cập nhật ảnh MVP và SUMARY.');
+   const next=await root.ClashOverlayData.load(common.querySelector('textarea').value,fetch,(loaded,total)=>{commonStatus.textContent='Đang tải dữ liệu '+loaded+'/'+total+' trận...';},true);
+   const results=[];for(const apply of [()=>root.ClashSquad.setMatches(next),()=>root.ClashSquadMVP.setMatches(next),()=>api.setMatches(next)]){try{await apply();results.push({status:'fulfilled'});}catch(reason){results.push({status:'rejected',reason});}}
+   const errors=results.flatMap((r,i)=>r.status==='rejected'?[['Thống kê Tử chiến','MVP','SUMARY'][i]+': '+r.reason.message]:[]);
+   commonStatus.textContent='Đã tải '+next.length+' trận · '+api.groups(next).length+' cặp đấu. '+(errors.length?errors.join(' | '):'Đã cập nhật tất cả tab Tử chiến, MVP và SUMARY.');
   }catch(error){commonStatus.textContent=error.message;}finally{loading=false;common.querySelector('button').disabled=false;common.querySelector('textarea').disabled=false;}
  };
  tab(false);render();

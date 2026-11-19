@@ -17,3 +17,12 @@ test('shared loader batches more than eight IDs and never returns partial data a
  assert.equal((await data.load(many.join(','),fetcher)).length,9);assert.deepEqual(calls.map(c=>c.length),[8,1]);
  let count=0;await assert.rejects(()=>data.load(many.join(','),async(...args)=>++count===2?{ok:false,json:async()=>({error:'Failed batch'})}:fetcher(...args)),/Failed batch/);
 });
+
+test('all-tab loading retains optional skills and weapons without losing mandatory Player data',async()=>{
+ const calls=[];const matches=await data.load(ids.join(','),async(url,options)=>{calls.push(url);return {ok:true,json:async()=>url==='/api/match'?{ok:true,data:{status:'success',data:fixture}}:{ok:true,data:{status:'success',data:{details:[url]}}}};},()=>{},true);
+ assert.equal(calls.length,3);assert.equal(matches.length,4);assert.deepEqual(matches[0].skills.data.details,['/api/match-skills']);assert.deepEqual(matches[3].weapons.data.details,['/api/match-weapons']);
+});
+test('overwrite names apply to all Player tables by exact ID without mutating the source',()=>{
+ const original={id:'1',teams:[{team_name:'A',player_data:[{player_id:'9007199254740993',player_name:'raw',kills:4}]}],players:[{player_id:'9007199254740993',player_name:'raw',kills:4}]};
+ const result=cs.withNames(original,new Map([['9007199254740993','NEW_NAME']]));assert.equal(result.teams[0].player_data[0].player_name,'NEW_NAME');assert.equal(result.players[0].player_name,'NEW_NAME');assert.equal(original.players[0].player_name,'raw');assert.equal(result.players[0].kills,4);
+});

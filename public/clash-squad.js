@@ -90,7 +90,11 @@
   }
   return result;
  }
- const api={ids,columns,display,extract,loadMatch,aggregate,aggregateWeapons,aggregateSkills,perGame};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquad=api;
+ function withNames(match,names=new Map()){
+  const rename=p=>({...p,player_name:names.get(String(p.player_id))||p.player_name});
+  return {...match,teams:match.teams.map(t=>({...t,player_data:(t.player_data||[]).map(rename)})),players:(match.players||[]).map(rename)};
+ }
+ const api={ids,columns,display,extract,loadMatch,aggregate,aggregateWeapons,aggregateSkills,perGame,withNames};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquad=api;
  const labels={estimated_pick_rate:'Tỷ lệ được chọn (tool tính)',equipped_appearances:'Lượt tuyển thủ trang bị',player_appearances:'Tổng lượt tuyển thủ',games:'Số trận',games_won:'Trận thắng',games_lost:'Trận thua',games_drawn:'Trận hòa',win_rate:'Tỷ lệ thắng',round_difference:'Hiệu số vòng',match_id:'Match ID',mode:'Mã chế độ',form:'Hình thức (form)',match_name:'Tên trận',number_of_team:'Số đội',number_of_player:'Số tuyển thủ',match_results:'Kết quả',match_rank:'Thứ hạng',team_id:'ID đội',team_name:'Đội',match_ids:'Các trận',player_id:'ID tuyển thủ',player_name:'Tuyển thủ',kills:'ELIMS',death:'DEATHS',kd:'K/D',damage:'DAMAGE',knock_down:'KNOCKDOWN',headshot_kill_rate:'Tỷ lệ hạ gục headshot',rescue_members:'Cứu đồng đội',w_l:'Tỷ số thắng–thua',wins:'Vòng thắng',losses:'Vòng thua',weapon:'Vũ khí',weapon_id:'ID vũ khí',active_skills:'Kỹ năng chủ động',passive_skills:'Kỹ năng bị động',pet_skills:'Kỹ năng thú cưng',loadout_skills:'Loadout',player_data:'Chi tiết tuyển thủ',teammate_list:'Danh sách ID tuyển thủ',pos_change:'Thay đổi vị trí',skill:'Kỹ năng',time:'time (API)',rounds:'rounds (API)',info:'Thông tin',score:'Điểm',pick_times:'Lượt chọn (API)',pick_rate:'Tỷ lệ chọn (API)',ban_times:'Lượt cấm (API)',ban_rate:'Tỷ lệ cấm (API)'};
  const el=(tag,text,cls)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(cls)node.className=cls;return node;};
  const panel=el('section',undefined,'cs-panel');panel.id='clashSquad';panel.hidden=true;
@@ -101,13 +105,16 @@
  const survival=el('button','Sinh tồn'),clash=el('button','Tử chiến'),overlay=el('button','OVERLAY TỬ CHIẾN');survival.type=clash.type=overlay.type='button';mode.append(survival,clash,overlay);document.querySelector('.workspace-tabs').before(mode);
  function setMode(value){const isClash=value==='clash',isOverlay=value==='overlay';document.body.classList.toggle('clash-active',isClash);document.body.classList.toggle('overlay-active',isOverlay);panel.hidden=!isClash;mvpHost.hidden=!isOverlay;survival.setAttribute('aria-pressed',String(!isClash&&!isOverlay));clash.setAttribute('aria-pressed',String(isClash));overlay.setAttribute('aria-pressed',String(isOverlay));if(isOverlay)root.ClashSquadMVP?.refresh();else if(!isClash&&typeof resizeBoard==='function')resizeBoard();}
  survival.onclick=()=>setMode('survival');clash.onclick=()=>setMode('clash');overlay.onclick=()=>setMode('overlay');setMode('survival');
- const q=id=>panel.querySelector('#'+id);let matches=[],active='overview',busy=false;
+ const q=id=>document.getElementById(id);let matches=[],active='overview',busy=false;
  const views=[['overview','Bảng tổng'],['teams','Đội tuyển'],['players','Người chơi'],['weapons','Vũ khí'],['skills','Kỹ năng trang bị'],['total','Tổng số'],['average','Trung bình'],['raw','Dữ liệu đầy đủ']];
  for(const [id,title] of views){const button=el('button',title);button.type='button';button.dataset.view=id;button.onclick=()=>{active=id;render();};q('csSections').appendChild(button);}
  function cell(value){
   const td=el('td');if(value&&typeof value==='object'){const details=el('details'),summary=el('summary',Array.isArray(value)?value.length+' mục':'Xem chi tiết');details.append(summary);if(Array.isArray(value)&&value.every(v=>v&&typeof v==='object'&&!Array.isArray(v)))details.append(table(value));else details.append(el('pre',JSON.stringify(value,null,2)));td.append(details);}else td.textContent=display(value);return td;
  }
- function table(rows){if(!Array.isArray(rows))return el('pre',JSON.stringify(rows,null,2));if(!rows.length)return el('p','API không cung cấp dữ liệu cho mục này.','cs-empty');if(!rows.every(v=>v&&typeof v==='object'))return el('pre',JSON.stringify(rows,null,2));const wrapper=el('div',undefined,'cs-table-scroll'),t=el('table'),head=el('thead'),tr=el('tr'),keys=columns(rows);for(const key of keys){const th=el('th',labels[key]||key);th.title=key;tr.append(th);}head.append(tr);t.append(head);const body=el('tbody');for(const row of rows){const tr=el('tr');for(const key of keys)tr.append(cell(row[key]));body.append(tr);}t.append(body);wrapper.append(t);return wrapper;}
+ function table(rows){if(!Array.isArray(rows))return el('pre',JSON.stringify(rows,null,2));if(!rows.length)return el('p','API không cung cấp dữ liệu cho mục này.','cs-empty');if(!rows.every(v=>v&&typeof v==='object'))return el('pre',JSON.stringify(rows,null,2));const wrapper=el('div',undefined,'cs-table-scroll'),t=el('table'),head=el('thead'),tr=el('tr'),keys=columns(rows);for(const key of keys){const th=el('th',labels[key]||key);th.title=key;tr.append(th);}head.append(tr);t.append(head);const body=el('tbody');for(const row of rows){const tr=el('tr');for(const key of keys){const td=cell(row[key]);
+ if(key==='player_name'&&row.player_id){const src=root.ClashSquadMVP?.photoFor?.(row.player_id);if(src){const img=el('img');img.className='cs-asset-icon';img.src=src;img.alt='';td.prepend(img);}}
+ if(key==='team_name'&&root.ClashSquadMVP?.logoFor){root.ClashSquadMVP.logoFor({team_name:row.team_name}).then(src=>{if(!src)return;const img=el('img');img.className='cs-asset-icon';img.src=src;img.alt='';td.prepend(img);}).catch(()=>{});}
+ tr.append(td);}body.append(tr);}t.append(body);wrapper.append(t);return wrapper;}
  function block(host,title,data){const section=el('section',undefined,'cs-block');section.append(el('h3',title),table(data));host.append(section);}
  function filteredTeams(match){return match.teams.filter(t=>!q('csTeam').value||String(t.team_name)===q('csTeam').value);}
  function renderCombined(selected,content){
@@ -128,7 +135,7 @@
  }
  function render(){
   q('csSections').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===active)));
-  const selected=matches.filter(m=>!q('csMatch').value||m.id===q('csMatch').value),content=q('csContent');content.replaceChildren();q('csScore').replaceChildren();
+  const selected=matches.filter(m=>!q('csMatch').value||m.id===q('csMatch').value).map(m=>withNames(m,root.ClashSquadMVP?.nameMap?.())),content=q('csContent');content.replaceChildren();q('csScore').replaceChildren();
   q('csTeam').disabled=q('csSearch').disabled=['weapons','skills'].includes(active);
   if(active==='skills'&&selected.length){
    const card=el('section',undefined,'cs-score');card.append(el('strong','Tổng cộng '+selected.length+' trận'));q('csScore').append(card);
@@ -168,6 +175,7 @@
  }
  function updateFilters(){const oldMatch=q('csMatch').value,oldTeam=q('csTeam').value;q('csMatch').replaceChildren(new Option('Tất cả trận',''));for(const m of matches)q('csMatch').append(new Option(m.id,m.id));if(matches.some(m=>m.id===oldMatch))q('csMatch').value=oldMatch;q('csTeam').replaceChildren(new Option('Tất cả đội',''));const names=[...new Set(matches.filter(m=>!q('csMatch').value||m.id===q('csMatch').value).flatMap(m=>m.teams.map(t=>String(t.team_name))))];for(const name of names)q('csTeam').append(new Option(name,name));if(names.includes(oldTeam))q('csTeam').value=oldTeam;}
  q('csMatch').onchange=()=>{updateFilters();render();};q('csTeam').onchange=render;q('csSearch').oninput=render;
- panel.querySelector('form').onsubmit=async event=>{event.preventDefault();if(busy)return;try{const matchIds=ids(q('csIds').value);busy=true;q('csFetch').disabled=true;const next=[];for(let i=0;i<matchIds.length;i++){q('csStatus').textContent=`Đang lấy Tử chiến ${i+1}/${matchIds.length} · ${matchIds[i]}...`;next.push(await loadMatch(matchIds[i]));}matches=next;updateFilters();render();q('csExport').disabled=false;const errors=matches.flatMap(m=>m.errors.map(e=>m.id+': '+e));q('csStatus').textContent=`Đã tải ${matches.length} trận · ${matches.reduce((n,m)=>n+m.players.length,0)} lượt tuyển thủ.`+(errors.length?' Một số thống kê bổ sung chưa tải được: '+errors.join(' | '):'');}catch(error){q('csStatus').textContent=error.message+' Dữ liệu trước đó được giữ nguyên.';}finally{busy=false;q('csFetch').disabled=false;}};
+ api.refresh=render;
+ api.setMatches=async next=>{matches=next;updateFilters();render();q('csExport').disabled=!matches.length;q('csStatus').textContent='Đã tải '+matches.length+' trận dùng chung với MVP và SUMARY.';};
  q('csExport').onclick=()=>{const blob=new Blob([JSON.stringify({mode:'clash-squad',matches},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=el('a');a.href=url;a.download='tu-chien-matchstats.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);};render();
 })(typeof window!=='undefined'?window:globalThis);
