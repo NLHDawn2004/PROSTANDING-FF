@@ -7,7 +7,7 @@ test('CS MVP resolves the selected player and aggregates exact player IDs',()=>{
  assert.equal(mvp.roster([matches[0]])[0].hs,'50.50%');
 });
 test('CS MVP calculates cumulative HS only from real headshot counts and preserves zero',()=>{
- const make=(id,kills,headshots)=>({id,teams:[{player_data:[{player_id:'1',player_name:'P',kills,damage:0,death:0,assists:0,headshots}]}]});
+ const make=(id,kills,headshots)=>({id,teams:[{player_data:[{player_id:'1',player_name:'P',kills,damage:0,death:0,assists:0,rescue_members:0,headshots}]}]});
  const player=mvp.roster([make('1',3,1),make('2',5,3)])[0];
  assert.equal(player.hs,'50%');assert.equal(player.kd,8);assert.equal(player.assists,0);assert.equal(mvp.stat(null),'—');assert.equal(mvp.stat(0),'0');
 });
@@ -32,4 +32,11 @@ test('fetch selects the first Player automatically and allows a manual override 
  assert.equal(mvp.selection(rows,'ID:2',false),'ID:2');
  assert.equal(mvp.selection(rows,'ID:2',true),'ID:1');
  assert.equal(mvp.selection([], 'ID:2',true),'');
+});
+
+test('MVP ASSISTS uses cumulative rescue_members instead of the unrelated assists field',()=>{
+ const make=(id,rescue)=>({id,teams:[{player_data:[{player_id:'1',player_name:'P',kills:2,death:1,damage:100,rescue_members:rescue,assists:99}]}]});
+ assert.equal(mvp.roster([make('1',2),make('2',3)])[0].assists,5);
+ assert.equal(mvp.roster([make('1',0)])[0].assists,0);
+ assert.equal(mvp.roster([make('1',undefined)])[0].assists,null);
 });
