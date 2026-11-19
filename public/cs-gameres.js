@@ -28,7 +28,7 @@
    if(token!==revision)return;ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
    function text(value,x,y,width,size,color='#000',align='center'){value=String(value??'—');ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='alphabetic';do{ctx.font=RankingFonts.font('name',size--,800,fonts);}while(ctx.measureText(value).width>width&&size>10);const m=ctx.measureText(value);ctx.fillText(value,x,y+(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2);}
    const fit=(img,x,y,w,h)=>{if(!img)return;const scale=Math.min(w/img.width,h/img.height),dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);};
-   text(q('grNumber').value||'1',1080,127,75,76,'#f4111a');
+   ctx.clearRect(850,78,205,88);text('TRẬN '+(q('grNumber').value||'1'),960,126,260,70,'#f4111a');
    for(let side=0;side<2;side++){
     const team=data?.teams[side],p=players[side],name=team?(ClashSquadSummary.teamName?.(team.team_name)||team.team_name):'—';
     fit(logos[side],side?1682:110,78,128,100);text(name,side?1510:440,130,330,54,'#fff');text(team?decimal(team.score):'—',side?1183:737,131,100,86,'#effb58');
