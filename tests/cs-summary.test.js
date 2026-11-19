@@ -10,5 +10,5 @@ test('summary uses Player totals, exact overwrite names, rescue assists, knockdo
  const result=summary.build([match('1'),match('2')],new Map([['9007199254740993','A_NEW']]));
  const p=result.teams.find(t=>t.team_name==='A').players[0];assert.equal(p.name,'A_NEW');assert.equal(p.kills,6);assert.equal(p.damage,1000);assert.equal(p.assists,4);assert.equal(p.kda,3);assert.equal(p.knock_down,8);assert.equal(p.hs,null);
  assert.equal(summary.build([match('1')]).teams[0].players[0].hs,'33.33%');
- assert.throws(()=>summary.build([match('1'),match('2'),match('3'),match('4')]),/3/);
+ assert.equal(summary.build([match('1'),match('2'),match('3'),match('4')]).games.length,4);
 });

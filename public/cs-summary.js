@@ -9,7 +9,7 @@
   return {id:match.id,winner:known&&scores[0].score!==scores[1].score?scores.reduce((a,b)=>a.score>b.score?a:b).team:null,scores:scores.map(s=>s.score)};
  }
  function build(matches,names=new Map()){
-  const unique=[...new Map(matches.map(m=>[m.id,m])).values()];if(unique.length>3)throw Error('Khung SUMARY hỗ trợ tối đa 3 Match ID.');
+  const unique=[...new Map(matches.map(m=>[m.id,m])).values()];
   const totals=cs.aggregate(unique);
   if(totals.teams.length>2)throw Error('SUMARY cần các trận của cùng hai đội. Hãy chọn riêng một Match ID.');
   const teams=totals.teams.map(t=>({...t,players:totals.players.filter(p=>p.team_name===t.team_name).map(p=>{
@@ -19,5 +19,9 @@
   })}));
   return {teams,games:unique.map(game)};
  }
- const api={build,game,stat};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquadSummary=api;
+ function groups(matches){
+  const result=new Map();for(const match of matches){const names=match.teams.map(t=>String(t.team_name||'').trim()).sort(),key=JSON.stringify(names.map(n=>n.toUpperCase()));if(!result.has(key))result.set(key,{key,label:names.join(' — '),matches:[]});result.get(key).matches.push(match);}return [...result.values()];
+ }
+ const pageGames=(games,page=0)=>games.slice(Math.max(0,Number(page)||0)*3,Math.max(0,Number(page)||0)*3+3);
+ const api={build,game,stat,groups,pageGames};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquadSummary=api;
 })(typeof window!=='undefined'?window:globalThis);
