@@ -50,7 +50,7 @@
  function remember(id,file){if(photos.has(id))URL.revokeObjectURL(photos.get(id));photos.set(id,URL.createObjectURL(file));}
  const restore=dbPromise.then(db=>new Promise((resolve,reject)=>{const req=db.transaction('photos').objectStore('photos').openCursor();req.onsuccess=()=>{const cursor=req.result;if(!cursor){resolve();return;}remember(cursor.key,cursor.value);cursor.continue();};req.onerror=()=>reject(req.error);}));restore.catch(()=>{});
  function changePhoto(db,id,file){return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put(file,id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}
- function controls(){for(const id of ['csmIds','csmMatch','csmPlayer','csmPhotos','csmLogos','csmLogoSelect','csmNames','csmFont','csmUpdate'])q(id).disabled=busy;q('csmDownload').disabled=!ready||busy;host.querySelectorAll('.preview-controls button').forEach(b=>b.disabled=!ready||busy);q('csmFetch').disabled=busy;q('csmReset').disabled=busy;}
+ function controls(){for(const id of ['csmIds','csmMatch','csmPlayer','csmPhotos','csmLogos','csmLogoSelect','csmNames','csmFont','csmUpdate'])q(id).disabled=busy;q('csmDownload').disabled=!ready||busy;host.querySelectorAll('#csmDownload + .preview-controls button').forEach(b=>b.disabled=!ready||busy);q('csmFetch').disabled=busy;q('csmReset').disabled=busy;}
  function playerOptions(automatic=false){const old=q('csmPlayer').value;rows=roster(matches.filter(m=>!q('csmMatch').value||m.id===q('csmMatch').value));q('csmPlayer').replaceChildren(new Option('— Chọn tuyển thủ MVP —',''));for(const p of rows)q('csmPlayer').append(new Option((names.get(String(p.player_id))||p.name)+' · '+p.team_name+' · ID '+(p.player_id??'—'),p.key));q('csmPlayer').value=selection(rows,old,automatic);}
  async function render(){
   const token=++revision;ready=false;controls();
@@ -70,7 +70,7 @@
    draw(ctx,{frame:bg,portrait,logo,player,font:RankingFonts.family('name',fonts)});
    ready=Boolean(player);controls();
    status(player?player.name+' · ID '+(player.player_id??'—')+' · '+player.games+' trận'+(!portrait?' · Chưa có ảnh tuyển thủ.':''):matches.length?'Đã tải '+rows.length+' tuyển thủ. Chọn người trong ô Chọn tuyển thủ MVP để cập nhật ảnh.':'Nhập Match ID để bắt đầu.');if(warnings.length||fontWarning)status(q('csmStatus').textContent+(warnings.length?' · '+warnings.join(' · '):'')+fontWarning);
-   BroadcastPreview.update('cs-mvp');
+   BroadcastPreview.update('cs-mvp');root.ClashSquadSummary?.refresh?.();
   }catch(error){if(token===revision){status(error.message);controls();}}
  }
  api.refresh=render;
@@ -96,5 +96,7 @@
  };
  q('csmDownload').onclick=()=>{if(!ready||busy)return;canvas.toBlob(blob=>{if(!blob){status('Không tạo được PNG.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='MVP-tu-chien.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},'image/png');};
  q('csmReset').onclick=async()=>{if(busy||!confirm('Khôi phục MVP Tử chiến? Xóa Match ID, tên ghi đè và ảnh riêng của tab này.'))return;busy=true;ready=false;controls();try{await restore.catch(()=>{});const db=await dbPromise;await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});photos.forEach(url=>URL.revokeObjectURL(url));photos.clear();logoOverrides.clear();matches=[];names=new Map();rows=[];q('csmIds').value='';q('csmMatch').replaceChildren();q('csmPlayer').replaceChildren(new Option('— Chọn tuyển thủ MVP —',''));q('csmFont').value='gff-vn-black';try{localStorage.removeItem('ff-csm-font');localStorage.removeItem('ff-csm-names');localStorage.removeItem('ff-csm-logo-overrides');}catch{}busy=false;await render();}catch(error){status('Không khôi phục được: '+error.message);}finally{busy=false;controls();}};
+ api.nameMap=()=>new Map(names);
+ api.logoFor=async team=>{await logoLibraryReady;const player={...team,name:team.players?.[0]?.name||team.player_data?.[0]?.player_name||team.team_name};const key=logoKey(player,[...rankingLogoLibrary.keys()],normalizeLogoName,logoOverrides.get(String(team.team_name))||'');return rankingLogoLibrary.get(key)||rankingTeamLogo({name:team.team_name,key:team.team_name});};
  playerOptions();render();
 })(typeof window!=='undefined'?window:globalThis);
