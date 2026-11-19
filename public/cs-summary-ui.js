@@ -33,7 +33,7 @@
     const team=model.teams[t],hy=t?653:263;
     if(team){const logo=teamLogos[t];if(logo){const scale=Math.min(70/logo.width,70/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,160-w/2,hy+43-h/2,w,h);}text(displayTeam(team.team_name),280,hy+43,176,50,'#116175','center',true);}
     const ys=t?[786,855,924,992]:[395,464,533,602];
-    for(let i=0;i<4;i++){const p=team?.players[i];if(!p)continue;const y=ys[i];text(p.name,155,y,235,31,'#000','left');const values=[api.stat(p.kills),api.stat(p.death),api.stat(p.assists),api.stat(p.kda),api.stat(p.damage),api.stat(p.knock_down)];values.forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));}
+    for(let i=0;i<4;i++){const p=team?.players[i];if(!p)continue;const y=ys[i];text(p.name,155,y,235,31,'#000','left');const values=[api.stat(p.kills),api.stat(p.death),api.stat(p.assists),api.stat(p.kda).replace(',', '.'),api.stat(p.damage),api.stat(p.knock_down)];values.forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));}
    }
    for(let i=0;i<3;i++){
     const game=games[i],y=257+i*262;if(!game)continue;
