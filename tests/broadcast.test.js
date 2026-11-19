@@ -34,3 +34,18 @@ test('cold server reads same link, animation commands preserve image version and
   assert.equal((await fetch(urls[1]+first.url+'/viewer.js')).status,200);
  }finally{await Promise.all(servers.map(s=>new Promise(r=>s.close(r))));await fs.rm(directory,{recursive:true,force:true});}
 });
+
+test('Clash Squad MVP preview has its own authenticated channel and token',async()=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'ff-csm-preview-'));const handler=createBroadcast({store:createFileStore(directory)});
+ const server=http.createServer(async(req,res)=>{const url=new URL(req.url,'http://'+req.headers.host);if(!await handler(req,res,url,req.headers.authorization==='test')){res.writeHead(401);res.end();}});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+ try{
+  const png=Buffer.alloc(25);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1920,16);png.writeUInt32BE(1080,20);
+  assert.equal((await fetch(base+'/api/broadcast/cs-mvp',{method:'POST',body:png})).status,401);
+  const post=kind=>fetch(base+'/api/broadcast/'+kind,{method:'POST',headers:{authorization:'test','Content-Type':'image/png'},body:png});
+  const cs=await post('cs-mvp');assert.equal(cs.status,200);const link=(await cs.json()).url;
+  const survival=(await (await post('mvp')).json()).url;assert.notEqual(link,survival);
+  assert.equal((await fetch(base+link+'.png')).status,200);
+  assert.equal((await fetch(base+'/api/broadcast/cs-mvp/control',{method:'POST',headers:{authorization:'test','Content-Type':'application/json'},body:JSON.stringify({effect:'zoom'})})).status,200);
+ }finally{await new Promise(r=>server.close(r));await fs.rm(directory,{recursive:true,force:true});}
+});
