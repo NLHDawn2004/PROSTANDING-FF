@@ -96,13 +96,13 @@
  const panel=el('section',undefined,'cs-panel');panel.id='clashSquad';panel.hidden=true;
  panel.innerHTML='<h1>Tử chiến · Match Stats</h1><p>Thông số trận, đội, tuyển thủ, vũ khí và kỹ năng. Dữ liệu Tử chiến độc lập với các công cụ Sinh tồn.</p><form class="cs-fetch"><label>Match ID Tử chiến<textarea id="csIds" rows="2" placeholder="2121570587261974528"></textarea></label><button id="csFetch" type="submit">Lấy dữ liệu Tử chiến</button><button id="csExport" type="button" disabled>Tải toàn bộ JSON</button></form><p id="csStatus" role="status" aria-live="polite">Nhập Match ID để bắt đầu.</p><div class="cs-filters"><label>Trận<select id="csMatch"></select></label><label>Đội<select id="csTeam"></select></label><label>Tìm tuyển thủ / ID<input id="csSearch" placeholder="Tên hoặc ID tuyển thủ"></label></div><div id="csScore"></div><nav id="csSections" class="cs-sections" aria-label="Thống kê Tử chiến"></nav><div id="csContent"></div>';
  document.querySelector('.app-shell').appendChild(panel);
- const mvpHost=el('section',undefined,'cs-mvp');mvpHost.id='csMvp';mvpHost.hidden=true;panel.append(mvpHost);
+ const mvpHost=el('section',undefined,'cs-mvp');mvpHost.id='csMvp';mvpHost.hidden=true;mvpHost.classList.add('cs-panel');document.querySelector('.app-shell').append(mvpHost);
  const mode=el('div',undefined,'game-mode-switch');mode.setAttribute('role','group');mode.setAttribute('aria-label','Chọn chế độ');
- const survival=el('button','Sinh tồn'),clash=el('button','Tử chiến');survival.type=clash.type='button';mode.append(survival,clash);document.querySelector('.workspace-tabs').before(mode);
- function setMode(isClash){document.body.classList.toggle('clash-active',isClash);panel.hidden=!isClash;survival.setAttribute('aria-pressed',String(!isClash));clash.setAttribute('aria-pressed',String(isClash));if(!isClash&&typeof resizeBoard==='function')resizeBoard();}
- survival.onclick=()=>setMode(false);clash.onclick=()=>setMode(true);setMode(false);
+ const survival=el('button','Sinh tồn'),clash=el('button','Tử chiến'),overlay=el('button','OVERLAY TỬ CHIẾN');survival.type=clash.type=overlay.type='button';mode.append(survival,clash,overlay);document.querySelector('.workspace-tabs').before(mode);
+ function setMode(value){const isClash=value==='clash',isOverlay=value==='overlay';document.body.classList.toggle('clash-active',isClash);document.body.classList.toggle('overlay-active',isOverlay);panel.hidden=!isClash;mvpHost.hidden=!isOverlay;survival.setAttribute('aria-pressed',String(!isClash&&!isOverlay));clash.setAttribute('aria-pressed',String(isClash));overlay.setAttribute('aria-pressed',String(isOverlay));if(isOverlay)root.ClashSquadMVP?.refresh();else if(!isClash&&typeof resizeBoard==='function')resizeBoard();}
+ survival.onclick=()=>setMode('survival');clash.onclick=()=>setMode('clash');overlay.onclick=()=>setMode('overlay');setMode('survival');
  const q=id=>panel.querySelector('#'+id);let matches=[],active='overview',busy=false;
- const views=[['overview','Bảng tổng'],['mvp','MVP'],['teams','Đội tuyển'],['players','Người chơi'],['weapons','Vũ khí'],['skills','Kỹ năng trang bị'],['total','Tổng số'],['average','Trung bình'],['raw','Dữ liệu đầy đủ']];
+ const views=[['overview','Bảng tổng'],['teams','Đội tuyển'],['players','Người chơi'],['weapons','Vũ khí'],['skills','Kỹ năng trang bị'],['total','Tổng số'],['average','Trung bình'],['raw','Dữ liệu đầy đủ']];
  for(const [id,title] of views){const button=el('button',title);button.type='button';button.dataset.view=id;button.onclick=()=>{active=id;render();};q('csSections').appendChild(button);}
  function cell(value){
   const td=el('td');if(value&&typeof value==='object'){const details=el('details'),summary=el('summary',Array.isArray(value)?value.length+' mục':'Xem chi tiết');details.append(summary);if(Array.isArray(value)&&value.every(v=>v&&typeof v==='object'&&!Array.isArray(v)))details.append(table(value));else details.append(el('pre',JSON.stringify(value,null,2)));td.append(details);}else td.textContent=display(value);return td;
@@ -127,10 +127,7 @@
   }
  }
  function render(){
-  const isMvp=active==='mvp';mvpHost.hidden=!isMvp;
-  for(const node of [panel.querySelector('.cs-fetch'),panel.querySelector('.cs-filters'),q('csStatus'),q('csScore'),q('csContent')])node.hidden=isMvp;
   q('csSections').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===active)));
-  if(isMvp){root.ClashSquadMVP?.refresh();return;}
   const selected=matches.filter(m=>!q('csMatch').value||m.id===q('csMatch').value),content=q('csContent');content.replaceChildren();q('csScore').replaceChildren();
   q('csTeam').disabled=q('csSearch').disabled=['weapons','skills'].includes(active);
   if(active==='skills'&&selected.length){

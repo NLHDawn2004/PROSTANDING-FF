@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const mvp=require('../public/cs-mvp');
-test('CS MVP requires an explicit manual selection and aggregates exact player IDs',()=>{
+test('CS MVP resolves the selected player and aggregates exact player IDs',()=>{
  const matches=[{id:'1',teams:[{team_name:'A',player_data:[{player_id:'6537554481',player_name:'P',kills:6,damage:1000,death:0,headshot_kill_rate:'50.50%'}]}]},{id:'2',teams:[{team_name:'A',player_data:[{player_id:'6537554481',player_name:'P',kills:4,damage:2000,death:2}]}]}];
  const rows=mvp.roster([...matches,matches[0]]);assert.equal(rows.length,1);assert.equal(rows[0].kills,10);assert.equal(rows[0].kd,5);assert.equal(rows[0].assists,null);assert.equal(rows[0].hs,null);
  assert.equal(mvp.chosen(rows,''),null);assert.equal(mvp.chosen(rows,'absent'),null);assert.equal(mvp.chosen(rows,rows[0].key),rows[0]);
@@ -17,4 +17,19 @@ test('CS MVP draws the six requested stats within the supplied frame and replace
  for(const value of ['10000','50.50%','—','WLF_GIAVAN'])assert.ok(text.some(t=>t[0]===value),value);
  assert.ok(!text.some(t=>['ELIMS','DMG','ASSISTS','HS','K/D','DEATH'].includes(t[0])),'Labels already exist in the supplied frame'); assert.ok(images.length>=4);assert.ok(rects.some(r=>r[0]===734&&r[1]===891));
  assert.ok(text.every(t=>t[1]>=138&&t[1]<=1812&&t[2]>=540&&t[2]<=982));
+});
+
+test('overlay still loads the new frame and stats when portrait or logo fails',async()=>{
+ const frame={name:'frame'};
+ const assets=await mvp.artwork(Promise.resolve(frame),'broken-photo','broken-logo',async()=>{throw Error('missing image');});
+ assert.equal(assets.frame,frame);assert.equal(assets.portrait,null);assert.equal(assets.logo,null);assert.equal(assets.warnings.length,2);
+ await assert.rejects(()=>mvp.artwork(Promise.reject(Error('frame missing')),null,null,async()=>{}),/frame missing/);
+});
+
+test('fetch selects the first Player automatically and allows a manual override until the next fetch',()=>{
+ const rows=[{key:'ID:1'},{key:'ID:2'}];
+ assert.equal(mvp.selection(rows,'',true),'ID:1');
+ assert.equal(mvp.selection(rows,'ID:2',false),'ID:2');
+ assert.equal(mvp.selection(rows,'ID:2',true),'ID:1');
+ assert.equal(mvp.selection([], 'ID:2',true),'');
 });
