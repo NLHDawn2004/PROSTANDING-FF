@@ -70,7 +70,7 @@
    draw(ctx,{frame:bg,portrait,logo,player,font:RankingFonts.family('name',fonts)});
    ready=Boolean(player);controls();
    status(player?player.name+' · ID '+(player.player_id??'—')+' · '+player.games+' trận'+(!portrait?' · Chưa có ảnh tuyển thủ.':''):matches.length?'Đã tải '+rows.length+' tuyển thủ. Chọn người trong ô Chọn tuyển thủ MVP để cập nhật ảnh.':'Nhập Match ID để bắt đầu.');if(warnings.length||fontWarning)status(q('csmStatus').textContent+(warnings.length?' · '+warnings.join(' · '):'')+fontWarning);
-   BroadcastPreview.update('cs-mvp');root.ClashSquadSummary?.refresh?.();root.ClashSquad.refresh?.();
+   BroadcastPreview.update('cs-mvp');root.ClashSquadSummary?.refresh?.();root.ClashSquad.refresh?.();root.ClashGameRes?.refresh?.();
   }catch(error){if(token===revision){status(error.message);controls();}}
  }
  api.refresh=render;

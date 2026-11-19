@@ -44,6 +44,7 @@ test('Clash Squad MVP preview has its own authenticated channel and token',async
   assert.equal((await fetch(base+'/api/broadcast/cs-mvp',{method:'POST',body:png})).status,401);
   const post=kind=>fetch(base+'/api/broadcast/'+kind,{method:'POST',headers:{authorization:'test','Content-Type':'image/png'},body:png});
   const cs=await post('cs-mvp');assert.equal(cs.status,200);const link=(await cs.json()).url;
+  const gr=await post('cs-gameres');assert.equal(gr.status,200);const grLink=(await gr.json()).url;assert.notEqual(grLink,link);assert.equal((await fetch(base+grLink+'.png')).status,200);
   const sum=await post('cs-summary');assert.equal(sum.status,200);const summaryLink=(await sum.json()).url;assert.notEqual(summaryLink,link);assert.equal((await fetch(base+summaryLink+'.png')).status,200);
   const survival=(await (await post('mvp')).json()).url;assert.notEqual(link,survival);
   assert.equal((await fetch(base+link+'.png')).status,200);
