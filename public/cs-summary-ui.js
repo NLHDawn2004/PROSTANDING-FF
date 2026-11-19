@@ -21,20 +21,22 @@
    const group=api.groups(matches).find(g=>g.key===q('cssGroup').value),selected=(group?.matches||[]).filter(m=>!q('cssScope').value||m.id===q('cssScope').value),model=api.build(selected,root.ClashSquadMVP.nameMap()),games=api.pageGames(model.games,q('cssPage').value);
    const fonts={name:q('cssFont').value};try{await RankingFonts.load(fonts);}catch{fonts.name='';}
    const logos=await Promise.all(games.map(async g=>{if(!g.winner)return null;const team=model.teams.find(t=>t.team_name===g.winner.team_name)||g.winner;const src=await root.ClashSquadMVP.logoFor(team);return src?image(src).catch(()=>null):null;}));
+   const teamLogos=await Promise.all(model.teams.map(async team=>{const src=await root.ClashSquadMVP.logoFor(team);return src?image(src).catch(()=>null):null;}));
    const bg=await frame;if(token!==revision)return;
    ctx.clearRect(0,0,1920,1080);ctx.drawImage(bg,0,0,1920,1080);
    function text(value,x,y,width,size,color='#000',align='center'){value=String(value??'—');ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';do{ctx.font=RankingFonts.font('name',size--,800,fonts);}while(ctx.measureText(value).width>width&&size>10);ctx.fillText(value,x,y);}
    const xs=[448,580,717,840,974,1154];
    for(let t=0;t<2;t++){
-    const team=model.teams[t],ys=t?[786,855,924,992]:[395,464,533,602];
+    const team=model.teams[t],hy=t?653:263;
+    if(team){const logo=teamLogos[t];if(logo){const scale=Math.min(70/logo.width,70/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,160-w/2,hy+43-h/2,w,h);}text(team.team_name,296,hy+43,196,50,'#116175');}
+    const ys=t?[786,855,924,992]:[395,464,533,602];
     for(let i=0;i<4;i++){const p=team?.players[i];if(!p)continue;const y=ys[i];text(p.name,155,y,235,31,'#000','left');const values=[api.stat(p.kills),api.stat(p.death),api.stat(p.assists),api.stat(p.kda),api.stat(p.damage),api.stat(p.knock_down)];values.forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));}
    }
    for(let i=0;i<3;i++){
     const game=games[i],y=257+i*262;if(!game)continue;
-    if(logos[i]){const logo=logos[i],scale=Math.min(450/logo.width,164/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,1565-w/2,y+100-h/2,w,h);}
-    text('TRẬN '+(Number(q('cssPage').value||0)*3+i+1)+' · '+game.id,1565,y+20,470,20,'#fff');
-    text(game.winner?.team_name||'Chưa xác định',1680,y+208,268,36,'#fff');
-    text(game.scores.map(api.stat).join(' : '),1418,y+208,180,32,'#fff');
+    if(logos[i]){const logo=logos[i],scale=Math.min(190/logo.width,130/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,1565-w/2,y+100-h/2,w,h);}
+    text(game.winner?.team_name||'Chưa xác định',1693,y+210,268,36,'#fff');
+    text(game.scores.map(api.stat).join(' : '),1420,y+210,205,44,'#fff');
    }
    ready=selected.length>0;controls();status(selected.length?'Đã cập nhật '+selected.length+' trận · '+model.teams.map(t=>t.team_name).join(' — ')+(games.some((g,i)=>g.winner&&!logos[i])?' · Một số đội chưa có logo.':''):'Nhập Match ID để bắt đầu.');BroadcastPreview.update('cs-summary');
   }catch(error){if(token===revision){status(error.message);controls();}}
