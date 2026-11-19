@@ -28,11 +28,19 @@
   return {frame:bg,portrait,logo,warnings};
  }
  const selection=(rows,previous,automatic=false)=>automatic?(rows[0]?.key||''):(chosen(rows,previous)?previous:'');
- const api={roster,chosen,stat,draw,artwork,selection};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquadMVP=api;
+ function logoKey(player,keys,normalize,manual=''){
+  if(keys.includes(manual))return manual;
+  const team=normalize(player.team_name);if(team&&keys.includes(team))return team;
+  const matches=new Set([player.name,player.player_name].filter(Boolean).map(name=>normalize(String(name).split(/[_\s.·|]+/)[0])).filter(key=>keys.includes(key)));
+  return matches.size===1?[...matches][0]:'';
+ }
+ const api={roster,chosen,stat,draw,artwork,selection,logoKey};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquadMVP=api;
  const host=document.querySelector('#csMvp');
- host.innerHTML='<h1>OVERLAY TỬ CHIẾN</h1><h2>MVP</h2><p>Nhập Match ID riêng. MVP tự lấy người đứng đầu bảng Player (ELIMS → DAMAGE → DEATHS ít hơn); bạn có thể chọn lại tuyển thủ.</p><form class="cs-fetch"><label>Match ID cho MVP Tử chiến<textarea id="csmIds" rows="2" placeholder="Nhập Match ID, cách nhau bằng dấu phẩy"></textarea></label><button id="csmFetch" type="submit">Lấy dữ liệu MVP</button></form><div class="cs-filters"><label>Trận<select id="csmMatch"></select></label><label>Chọn tuyển thủ MVP<select id="csmPlayer"></select></label><label>Font chữ<select id="csmFont"></select></label></div><label>Ảnh tuyển thủ theo ID<input id="csmPhotos" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><small>Ảnh đặt tên theo ID, ví dụ 6537554481.png. Có thể dùng ảnh đã nhập ở MVP Sinh tồn.</small><label>Thêm logo đội theo tên file<input id="csmLogos" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label><small>Ví dụ: AENK.png cho đội AENK. Chọn nhiều logo cùng lúc; logo được lưu trong kho logo dùng chung.</small><p id="csmLogoStatus" role="status" aria-live="polite"></p><label>PlayerNameOverwrite.json<input id="csmNames" type="file" accept=".json,application/json"></label><div class="cs-mvp-actions"><button id="csmUpdate" type="button">Cập nhật MVP</button><button id="csmDownload" type="button" disabled>Xuất MVP PNG</button><button id="csmReset" type="button">Khôi phục mặc định</button></div><p id="csmStatus" role="status" aria-live="polite"></p><p class="cs-note">ASSISTS = Cứu đồng đội (rescue_members), cộng dồn theo các trận đã chọn. HS cộng dồn chỉ tính khi có số headshot gốc; không cộng hoặc lấy trung bình các tỷ lệ giữa các trận. K/D = tổng ELIMS / tổng DEATHS; DEATHS = 0 dùng ELIMS.</p><canvas id="csmCanvas" width="1920" height="1080" aria-label="MVP Tử chiến"></canvas>';
+ host.innerHTML='<h1>OVERLAY TỬ CHIẾN</h1><h2>MVP</h2><p>Nhập Match ID riêng. MVP tự lấy người đứng đầu bảng Player (ELIMS → DAMAGE → DEATHS ít hơn); bạn có thể chọn lại tuyển thủ.</p><form class="cs-fetch"><label>Match ID cho MVP Tử chiến<textarea id="csmIds" rows="2" placeholder="Nhập Match ID, cách nhau bằng dấu phẩy"></textarea></label><button id="csmFetch" type="submit">Lấy dữ liệu MVP</button></form><div class="cs-filters"><label>Trận<select id="csmMatch"></select></label><label>Chọn tuyển thủ MVP<select id="csmPlayer"></select></label><label>Font chữ<select id="csmFont"></select></label></div><label>Ảnh tuyển thủ theo ID<input id="csmPhotos" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><small>Ảnh đặt tên theo ID, ví dụ 6537554481.png. Có thể dùng ảnh đã nhập ở MVP Sinh tồn.</small><label>Thêm logo đội theo tên file<input id="csmLogos" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple></label><small>Ví dụ: AENK.png cho đội AENK. Chọn nhiều logo cùng lúc; logo được lưu trong kho logo dùng chung.</small><label>Logo đội MVP<select id="csmLogoSelect"><option value="">Tự ghép theo tên đội / tiền tố tuyển thủ</option></select></label><p id="csmLogoStatus" role="status" aria-live="polite"></p><label>PlayerNameOverwrite.json<input id="csmNames" type="file" accept=".json,application/json"></label><div class="cs-mvp-actions"><button id="csmUpdate" type="button">Cập nhật MVP</button><button id="csmDownload" type="button" disabled>Xuất MVP PNG</button><button id="csmReset" type="button">Khôi phục mặc định</button></div><p id="csmStatus" role="status" aria-live="polite"></p><p class="cs-note">ASSISTS = Cứu đồng đội (rescue_members), cộng dồn theo các trận đã chọn. HS cộng dồn chỉ tính khi có số headshot gốc; không cộng hoặc lấy trung bình các tỷ lệ giữa các trận. K/D = tổng ELIMS / tổng DEATHS; DEATHS = 0 dùng ELIMS.</p><canvas id="csmCanvas" width="1920" height="1080" aria-label="MVP Tử chiến"></canvas>';
  const q=id=>host.querySelector('#'+id),canvas=q('csmCanvas'),ctx=canvas.getContext('2d'),photos=new Map();let matches=[],names=new Map(),rows=[],busy=false,ready=false,revision=0;
  const loadImage=src=>new Promise((resolve,reject)=>{const image=new Image(),timer=setTimeout(()=>reject(Error('Ảnh tải quá lâu.')),8000);image.onload=()=>{clearTimeout(timer);resolve(image);};image.onerror=()=>{clearTimeout(timer);reject(Error('Không đọc được ảnh MVP.'));};image.src=src;});
+ const logoLibraryReady=rankingLogoLoad().catch(()=>{});
+ const logoOverrides=new Map();try{for(const [key,value] of JSON.parse(localStorage.getItem('ff-csm-logo-overrides')||'[]'))logoOverrides.set(key,value);}catch{}
  const frame=loadImage('cs-mvp-template.png');frame.catch(()=>{});
  const status=text=>{q('csmStatus').textContent=text;};
  for(const face of RankingFonts.entries)q('csmFont').append(new Option(face.label,face.id));
@@ -42,15 +50,21 @@
  function remember(id,file){if(photos.has(id))URL.revokeObjectURL(photos.get(id));photos.set(id,URL.createObjectURL(file));}
  const restore=dbPromise.then(db=>new Promise((resolve,reject)=>{const req=db.transaction('photos').objectStore('photos').openCursor();req.onsuccess=()=>{const cursor=req.result;if(!cursor){resolve();return;}remember(cursor.key,cursor.value);cursor.continue();};req.onerror=()=>reject(req.error);}));restore.catch(()=>{});
  function changePhoto(db,id,file){return new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').put(file,id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);});}
- function controls(){for(const id of ['csmIds','csmMatch','csmPlayer','csmPhotos','csmLogos','csmNames','csmFont','csmUpdate'])q(id).disabled=busy;q('csmDownload').disabled=!ready||busy;host.querySelectorAll('.preview-controls button').forEach(b=>b.disabled=!ready||busy);q('csmFetch').disabled=busy;q('csmReset').disabled=busy;}
+ function controls(){for(const id of ['csmIds','csmMatch','csmPlayer','csmPhotos','csmLogos','csmLogoSelect','csmNames','csmFont','csmUpdate'])q(id).disabled=busy;q('csmDownload').disabled=!ready||busy;host.querySelectorAll('.preview-controls button').forEach(b=>b.disabled=!ready||busy);q('csmFetch').disabled=busy;q('csmReset').disabled=busy;}
  function playerOptions(automatic=false){const old=q('csmPlayer').value;rows=roster(matches.filter(m=>!q('csmMatch').value||m.id===q('csmMatch').value));q('csmPlayer').replaceChildren(new Option('— Chọn tuyển thủ MVP —',''));for(const p of rows)q('csmPlayer').append(new Option((names.get(String(p.player_id))||p.name)+' · '+p.team_name+' · ID '+(p.player_id??'—'),p.key));q('csmPlayer').value=selection(rows,old,automatic);}
  async function render(){
   const token=++revision;ready=false;controls();
   try{
-   await restore.catch(()=>{});const fonts={name:q('csmFont').value};let fontWarning='';try{await RankingFonts.load(fonts);}catch{fonts.name='';fontWarning=' · Không tải được font, đang dùng Arial.';}
+   await Promise.all([restore.catch(()=>{}),logoLibraryReady]);const fonts={name:q('csmFont').value};let fontWarning='';try{await RankingFonts.load(fonts);}catch{fonts.name='';fontWarning=' · Không tải được font, đang dùng Arial.';}
    const selected=chosen(rows,q('csmPlayer').value),player=selected?{...selected,name:names.get(String(selected.player_id))||selected.name}:null;
    const src=player?(photos.get(String(player.player_id))||MVP.photoFor(player.player_id)):null;
-   const logoSrc=player&&typeof rankingTeamLogo==='function'?(rankingLogoLibrary.get(normalizeLogoName(player.team_name))||rankingTeamLogo({name:player.team_name,key:player.team_name})):null;
+   const keys=[...rankingLogoLibrary.keys()].sort(),teamKey=player?String(player.team_name||player.key):'';
+   q('csmLogoSelect').replaceChildren(new Option('Tự ghép theo tên đội / tiền tố tuyển thủ',''));
+   for(const key of keys)q('csmLogoSelect').append(new Option(key,key));
+   const manual=logoOverrides.get(teamKey)||'';if(keys.includes(manual))q('csmLogoSelect').value=manual;
+   const matched=player?logoKey(player,keys,normalizeLogoName,manual):'';
+   const logoSrc=player?(rankingLogoLibrary.get(matched)||rankingTeamLogo({name:player.team_name,key:player.team_name})):null;
+   q('csmLogoStatus').textContent=player?(logoSrc?'Đã ghép logo '+(matched||player.team_name)+' cho đội '+player.team_name+'.':'Chưa tìm được logo cho đội '+player.team_name+'. Nhập logo hoặc chọn trực tiếp ở ô Logo đội MVP.'):'Nhập logo trước hoặc sau khi tải Match ID.';
    const {frame:bg,portrait,logo,warnings}=await artwork(frame,src,logoSrc,loadImage);
    if(token!==revision)return;
    draw(ctx,{frame:bg,portrait,logo,player,font:RankingFonts.family('name',fonts)});
@@ -66,20 +80,21 @@
  q('csmFont').onchange=()=>{try{localStorage.setItem('ff-csm-font',q('csmFont').value);}catch{}render();};
  q('csmNames').onchange=async()=>{const file=q('csmNames').files[0];q('csmNames').value='';if(!file)return;try{const text=await file.text(),next=MVP.parseNames(text);names=next;try{localStorage.setItem('ff-csm-names',text);}catch{}playerOptions();await render();}catch(error){status(error.message);}};
  q('csmPhotos').onchange=async()=>{const files=[...q('csmPhotos').files];q('csmPhotos').value='';if(busy||!files.length)return;busy=true;controls();let added=0,skipped=0;try{const db=await dbPromise;await restore;for(const file of files){const id=MVP.photoId(file.name);if(!id||!/^image\/(png|jpeg|webp)$/.test(file.type)){skipped++;continue;}await changePhoto(db,id,file);remember(id,file);added++;}busy=false;await render();status('Đã lưu '+added+' ảnh'+(skipped?' · Bỏ qua '+skipped+' tệp không hợp lệ.':'.'));}catch(error){status('Không lưu được ảnh: '+error.message);}finally{busy=false;controls();}};
+ q('csmLogoSelect').onchange=()=>{const player=chosen(rows,q('csmPlayer').value);if(!player)return;const key=String(player.team_name||player.key),value=q('csmLogoSelect').value;if(value)logoOverrides.set(key,value);else logoOverrides.delete(key);try{localStorage.setItem('ff-csm-logo-overrides',JSON.stringify([...logoOverrides]));}catch{}render();};
  q('csmLogos').onchange=async()=>{
   const files=[...q('csmLogos').files];q('csmLogos').value='';if(busy||!files.length)return;
   busy=true;controls();let added=0;const rejected=[];
   try{
    for(const file of files){
-    const key=normalizeLogoName(file.name);
+    await logoLibraryReady;const key=normalizeLogoName(file.name);
     if(!key||!/^image\/(png|jpeg|webp|gif)$/.test(file.type)){rejected.push(file.name);continue;}
     try{await rankingLogoSave(key,file);rankingLogoRemember(key,file);added++;}catch{rejected.push(file.name);}
    }
    busy=false;await render();
-   q('csmLogoStatus').textContent='Đã lưu '+added+' logo theo tên file.'+(rejected.length?' Không lưu được: '+rejected.join(', '):'');
+   q('csmLogoStatus').textContent='Đã lưu '+added+' logo theo tên file. '+q('csmLogoStatus').textContent+(rejected.length?' Không lưu được: '+rejected.join(', '):'');
   }finally{busy=false;controls();}
  };
  q('csmDownload').onclick=()=>{if(!ready||busy)return;canvas.toBlob(blob=>{if(!blob){status('Không tạo được PNG.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='MVP-tu-chien.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);},'image/png');};
- q('csmReset').onclick=async()=>{if(busy||!confirm('Khôi phục MVP Tử chiến? Xóa Match ID, tên ghi đè và ảnh riêng của tab này.'))return;busy=true;ready=false;controls();try{await restore.catch(()=>{});const db=await dbPromise;await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});photos.forEach(url=>URL.revokeObjectURL(url));photos.clear();matches=[];names=new Map();rows=[];q('csmIds').value='';q('csmMatch').replaceChildren();q('csmPlayer').replaceChildren(new Option('— Chọn tuyển thủ MVP —',''));q('csmFont').value='gff-vn-black';try{localStorage.removeItem('ff-csm-font');localStorage.removeItem('ff-csm-names');}catch{}busy=false;await render();}catch(error){status('Không khôi phục được: '+error.message);}finally{busy=false;controls();}};
+ q('csmReset').onclick=async()=>{if(busy||!confirm('Khôi phục MVP Tử chiến? Xóa Match ID, tên ghi đè và ảnh riêng của tab này.'))return;busy=true;ready=false;controls();try{await restore.catch(()=>{});const db=await dbPromise;await new Promise((resolve,reject)=>{const tx=db.transaction('photos','readwrite');tx.objectStore('photos').clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});photos.forEach(url=>URL.revokeObjectURL(url));photos.clear();logoOverrides.clear();matches=[];names=new Map();rows=[];q('csmIds').value='';q('csmMatch').replaceChildren();q('csmPlayer').replaceChildren(new Option('— Chọn tuyển thủ MVP —',''));q('csmFont').value='gff-vn-black';try{localStorage.removeItem('ff-csm-font');localStorage.removeItem('ff-csm-names');localStorage.removeItem('ff-csm-logo-overrides');}catch{}busy=false;await render();}catch(error){status('Không khôi phục được: '+error.message);}finally{busy=false;controls();}};
  playerOptions();render();
 })(typeof window!=='undefined'?window:globalThis);

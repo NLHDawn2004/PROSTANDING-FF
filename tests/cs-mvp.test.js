@@ -40,3 +40,13 @@ test('MVP ASSISTS uses cumulative rescue_members instead of the unrelated assist
  assert.equal(mvp.roster([make('1',0)])[0].assists,0);
  assert.equal(mvp.roster([make('1',undefined)])[0].assists,null);
 });
+
+test('short logos match exact team first, then player prefix, with explicit override available',()=>{
+ const normalize=s=>String(s||'').replace(/\.png$/i,'').replace(/[^a-z0-9]/gi,'').toUpperCase(),keys=['SOK','LLE','ASB','WLF'];
+ assert.equal(mvp.logoKey({team_name:'WLF'},keys,normalize),'WLF');
+ assert.equal(mvp.logoKey({team_name:'Squad 1',name:'WLF_GIAVAN'},keys,normalize),'WLF');
+ assert.equal(mvp.logoKey({team_name:'Squad 1',name:'ASB.Player'},keys,normalize),'ASB');
+ assert.equal(mvp.logoKey({team_name:'Squad 1',name:'WLFOTHER'},keys,normalize),'');
+ assert.equal(mvp.logoKey({team_name:'WLF'},keys,normalize,'SOK'),'SOK');
+ assert.equal(mvp.logoKey({team_name:'ASB'},keys,normalize,'deleted'),'ASB');
+});
