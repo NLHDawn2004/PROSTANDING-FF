@@ -23,7 +23,7 @@ function createBroadcast(options={}){
       const version=crypto.createHash('sha256').update(data).digest('hex');
       if(version!==state.version){await store.putImage(token,version,data);state.version=version;const versions=[version,...(state.recent||[]).filter(v=>v!==version)];state.recent=versions.slice(0,3);stale=versions.slice(3);}
      }
-     state.updatedAt=Date.now();await store.set(token,state);for(const version of stale)await store.removeImage(token,version).catch(()=>{});return state;
+     state.kind=write[1];state.updatedAt=Date.now();await store.set(token,state);for(const version of stale)await store.removeImage(token,version).catch(()=>{});return state;
     });
     send(res,200,JSON.stringify({url:'/broadcast/'+token,settings:result.settings,version:result.version}));
    }catch(error){send(res,/Expected|hợp lệ|Thời gian|giới hạn|JSON/.test(error.message)?400:503,JSON.stringify({error:error.message}));}
@@ -34,7 +34,7 @@ function createBroadcast(options={}){
   try{
    const state=await store.get(view[1]);if(!state){send(res,404,'Preview unavailable','text/plain');return true;}
    if(view[2]==='/viewer.js'){send(res,200,viewer(),'text/javascript');return true;}
-   if(view[2]==='.json'){send(res,200,JSON.stringify({version:state.version,settings:state.settings}));return true;}
+   if(view[2]==='.json'){send(res,200,JSON.stringify({version:state.version,settings:state.settings,kind:state.kind}));return true;}
    if(view[2]==='.png'){
     const requested=url.searchParams.get('v')||state.version;if(!requested||!state.recent.includes(requested)){send(res,404,'Frame unavailable','text/plain');return true;}
     const data=await store.image(view[1],requested);if(!data){send(res,404,'Frame unavailable','text/plain');return true;}send(res,200,data,'image/png');return true;

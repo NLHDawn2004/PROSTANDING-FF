@@ -14,6 +14,7 @@ test('preview requires authenticated publishing, gives token link and serves cur
   const frame=await fetch(base+url+'.png');assert.equal(frame.headers.get('content-type'),'image/png');assert.deepEqual(Buffer.from(await frame.arrayBuffer()),png);
   const next=await fetch(base+'/api/broadcast/mvp',{method:'POST',headers:{authorization:'test'},body:png});assert.equal((await next.json()).url,url);
   const board=await fetch(base+'/api/broadcast/standings',{method:'POST',headers:{authorization:'test'},body:png});assert.equal(board.status,200);const boardUrl=(await board.json()).url;assert.notEqual(boardUrl,url);assert.equal((await fetch(base+boardUrl+'.png')).status,200);
+
  }finally{await new Promise(r=>server.close(r));await fs.rm(directory,{recursive:true,force:true});}
 });
 test('cold server reads same link, animation commands preserve image version and invalid controls reject',async()=>{
@@ -48,6 +49,7 @@ test('Clash Squad MVP preview has its own authenticated channel and token',async
   const sum=await post('cs-summary');assert.equal(sum.status,200);const summaryLink=(await sum.json()).url;assert.notEqual(summaryLink,link);assert.equal((await fetch(base+summaryLink+'.png')).status,200);
   const survival=(await (await post('mvp')).json()).url;assert.notEqual(link,survival);
   assert.equal((await fetch(base+link+'.png')).status,200);
-  assert.equal((await fetch(base+'/api/broadcast/cs-mvp/control',{method:'POST',headers:{authorization:'test','Content-Type':'application/json'},body:JSON.stringify({effect:'zoom'})})).status,200);
+  assert.equal((await fetch(base+'/api/broadcast/cs-mvp/control',{method:'POST',headers:{authorization:'test','Content-Type':'application/json'},body:JSON.stringify({effect:'broadcast',titleFlash:true})})).status,200);
+  const state=await (await fetch(base+link+'.json')).json();assert.equal(state.kind,'cs-mvp');assert.equal(state.settings.effect,'broadcast');assert.equal(state.settings.titleFlash,true);
  }finally{await new Promise(r=>server.close(r));await fs.rm(directory,{recursive:true,force:true});}
 });
