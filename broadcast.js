@@ -1,15 +1,33 @@
 const crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:path');
 const {settings,defaults}=require('./preview-settings');
 const {createFileStore,createBlobStore}=require('./broadcast-store');
+const program=require('./overlay-program');
 function createBroadcast(options={}){
  const store=options.store||(process.env.VERCEL?createBlobStore():createFileStore());
  const locks=new Map();
+ const now=options.now||Date.now;
  const send=(res,status,body,type='application/json')=>{res.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(body);};
  async function tokenFor(kind){return crypto.createHmac('sha256',await store.secret()).update('preview-v2:'+kind).digest('hex').slice(0,48);}
  async function exclusive(key,fn){const previous=locks.get(key)||Promise.resolve();const task=previous.catch(()=>{}).then(fn);locks.set(key,task);try{return await task;}finally{if(locks.get(key)===task)locks.delete(key);}}
  async function body(req,max){let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>max)throw Error('Dữ liệu vượt giới hạn tải lên.');chunks.push(chunk);}return Buffer.concat(chunks);}
  const viewer=()=>fs.readFileSync(path.join(__dirname,'public/broadcast-viewer.js'));
  return async function(req,res,url,authenticated=false){
+  if(url.pathname==='/api/broadcast/cs-overlay/program'&&authenticated&&['GET','POST'].includes(req.method)){
+   if(req.headers.origin&&req.headers.origin!==url.origin){send(res,403,'{"error":"Invalid origin"}');return true;}
+   try{
+    const token=await tokenFor('cs-overlay');let state;
+    if(req.method==='POST'){
+     const input=JSON.parse((await body(req,4096)).toString());
+     state=await exclusive(token,async()=>{
+      if(input.action==='start')for(const kind of program.kinds){if(!(await store.get(await tokenFor(kind)))?.version)throw Error('Chưa có ảnh '+kind+'. Hãy lấy dữ liệu và đồng bộ đủ ba overlay.');}
+      const previous=await store.get(token),next={kind:'cs-overlay',program:program.command(previous?.program,input,now())};await store.set(token,next);return next;
+     });
+    }else state=await store.get(token);
+    if(!state){send(res,404,'{"error":"Chưa bắt đầu chuyển overlay."}');return true;}
+    send(res,200,JSON.stringify({url:'/broadcast/'+token,program:program.snapshot(state.program,now())}));
+   }catch(error){send(res,/Thời gian|hợp lệ|Chưa|JSON/.test(error.message)?400:503,JSON.stringify({error:error.message}));}
+   return true;
+  }
   const write=url.pathname.match(/^\/api\/broadcast\/(mvp|h2h|standings|booyah|cs-mvp|cs-summary|cs-gameres)(\/control)?$/);
   if(write&&req.method==='POST'&&authenticated){
    if(req.headers.origin&&req.headers.origin!==url.origin){send(res,403,'{"error":"Invalid origin"}');return true;}
@@ -34,6 +52,20 @@ function createBroadcast(options={}){
   try{
    const state=await store.get(view[1]);if(!state){send(res,404,'Preview unavailable','text/plain');return true;}
    if(view[2]==='/viewer.js'){send(res,200,viewer(),'text/javascript');return true;}
+   if(state.program){
+    const current=program.snapshot(state.program,now());
+    if(view[2]==='.png'){
+     const requested=url.searchParams.get('v'),match=requested?.match(/^(cs-mvp|cs-summary|cs-gameres)-([a-f0-9]{64})$/),kind=match?.[1]||(!requested?current.kind:null);
+     if(!kind){send(res,404,'Frame unavailable','text/plain');return true;}
+     const sourceToken=await tokenFor(kind),source=await store.get(sourceToken),version=match?.[2]||source?.version;
+     if(!version||!source?.recent.includes(version)){send(res,404,'Frame unavailable','text/plain');return true;}
+     const data=await store.image(sourceToken,version);if(!data){send(res,404,'Frame unavailable','text/plain');return true;}send(res,200,data,'image/png');return true;
+    }
+    if(view[2]==='.json'){
+     const source=await store.get(await tokenFor(current.kind));if(!source?.version)throw Error('Frame unavailable');
+     send(res,200,JSON.stringify({version:current.kind+'-'+source.version,kind:current.kind,settings:{...source.settings,visible:true,onOpen:true,onUpdate:true,replay:state.program.run+':'+current.index+':'+source.settings.replay},program:current}));return true;
+    }
+   }
    if(view[2]==='.json'){send(res,200,JSON.stringify({version:state.version,settings:state.settings,kind:state.kind}));return true;}
    if(view[2]==='.png'){
     const requested=url.searchParams.get('v')||state.version;if(!requested||!state.recent.includes(requested)){send(res,404,'Frame unavailable','text/plain');return true;}

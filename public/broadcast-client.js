@@ -34,13 +34,14 @@
     finally{channel.pending=null;}
    })();return channel.pending;
   }
-  channel.update=()=>{if(channel.enabled){channel.dirty=true;publish();}};
+  channel.update=()=>{if(channel.enabled&&(!isOverlay||!anchor.disabled)){channel.dirty=true;publish();}};
   async function activate(){channel.enabled=true;try{localStorage.setItem('ff-preview-enabled-'+kind,'true');}catch{}channel.dirty=true;channel.controlDirty=true;await publish();}
+  channel.sync=async()=>{await activate();if(channel.controlDirty||channel.dirty||!channel.url)throw Error(status.textContent);return channel.url;};
   button('open').onclick=async()=>{button('open').disabled=true;const popup=window.open('about:blank','_blank');try{await activate();if(channel.url&&popup){popup.opener=null;popup.location.href=channel.url;}else if(popup)popup.close();}finally{button('open').disabled=false;}};
   button('replay').onclick=()=>{channel.settings.replay=crypto.randomUUID();save();channel.controlDirty=true;if(!channel.enabled)activate();else publish();};
   function visibilityLabel(){if(isOverlay){button('show').setAttribute('aria-pressed',String(channel.settings.visible));button('hide').setAttribute('aria-pressed',String(!channel.settings.visible));}else button('visibility').textContent=channel.settings.visible?'Ẩn Preview':'Hiện Preview';}visibilityLabel();
   function setVisibility(visible){channel.settings.visible=visible;if(isOverlay&&visible)channel.settings.replay=crypto.randomUUID();visibilityLabel();save();channel.controlDirty=true;if(!channel.enabled)activate();else publish();}
   if(isOverlay){button('show').onclick=()=>setVisibility(true);button('hide').onclick=()=>setVisibility(false);}else button('visibility').onclick=()=>setVisibility(!channel.settings.visible);
   button('sync').onclick=()=>{channel.lastHash=null;activate();};
- },update(kind){channels.get(kind)?.update();}};
+ },update(kind){channels.get(kind)?.update();},async sync(kind){const channel=channels.get(kind);if(!channel)throw Error('Chưa sẵn sàng overlay '+kind);return channel.sync();}};
 })();
