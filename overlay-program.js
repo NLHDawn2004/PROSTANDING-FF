@@ -1,4 +1,4 @@
-const kinds=['cs-mvp','cs-summary','cs-gameres'];
+const kinds=['cs-mvp','cs-gameres','cs-summary'];
 function snapshot(program,now=Date.now()){
  const elapsed=Math.min(program.interval*2,program.elapsed+(program.running?Math.max(0,now-program.startedAt):0));
  const index=Math.min(2,Math.floor(elapsed/program.interval)),finished=index===2;

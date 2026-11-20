@@ -11,7 +11,7 @@
  if(typeof module!=='undefined'&&module.exports){module.exports={parseDuration};return;}
  const shared=document.getElementById('csSharedInputs');if(!shared)return;
  const panel=document.createElement('fieldset');panel.className='preview-controls overlay-program';
- panel.innerHTML='<legend>Điều khiển OVERLAY · Preview chung</legend><p>MVP → SUMARY → GAMERES</p><div class="preview-options"><label>Thời gian mỗi overlay (phút:giây)<input id="overlayProgramDuration" type="text" value="01:30" placeholder="01:30" aria-describedby="overlayProgramHelp"></label></div><div class="preview-buttons"><button type="button" data-program="start">Bắt đầu từ MVP</button><button type="button" data-program="preview">Mở Preview chung</button><button type="button" data-program="pause" disabled>Dừng chuyển</button><button type="button" data-program="resume" disabled>Tiếp tục chuyển</button></div><p class="program-status" role="status" aria-live="polite">Lấy dữ liệu dùng chung, rồi bấm Bắt đầu từ MVP.</p><div class="preview-link"></div><small id="overlayProgramHelp">Ví dụ 01:30 = 1 phút 30 giây. Sau GAMERES sẽ giữ nguyên màn hình. Dừng chuyển giữ overlay hiện tại; Tiếp tục dùng thời gian còn lại. Lịch vẫn chạy khi đóng trang điều khiển. Thiết lập thời gian mới áp dụng khi bấm Bắt đầu từ MVP.</small>';
+ panel.innerHTML='<legend>Điều khiển OVERLAY · Preview chung</legend><p>MVP → GAMERES → SUMARY</p><div class="preview-options"><label>Thời gian mỗi overlay (phút:giây)<input id="overlayProgramDuration" type="text" value="01:30" placeholder="01:30" aria-describedby="overlayProgramHelp"></label></div><div class="preview-buttons"><button type="button" data-program="start">Bắt đầu từ MVP</button><button type="button" data-program="preview">Mở Preview chung</button><button type="button" data-program="pause" disabled>Dừng chuyển</button><button type="button" data-program="resume" disabled>Tiếp tục chuyển</button></div><p class="program-status" role="status" aria-live="polite">Lấy dữ liệu dùng chung, rồi bấm Bắt đầu từ MVP.</p><div class="preview-link"></div><small id="overlayProgramHelp">Ví dụ 01:30 = 1 phút 30 giây. Sau SUMARY sẽ giữ nguyên màn hình. Dừng chuyển giữ overlay hiện tại; Tiếp tục dùng thời gian còn lại. Lịch vẫn chạy khi đóng trang điều khiển. Thiết lập thời gian mới áp dụng khi bấm Bắt đầu từ MVP.</small>';
  shared.append(panel);
  const button=name=>panel.querySelector('[data-program="'+name+'"]'),input=panel.querySelector('input'),status=panel.querySelector('.program-status'),output=panel.querySelector('.preview-link');
  const labels={'cs-mvp':'MVP','cs-summary':'SUMARY','cs-gameres':'GAMERES'};let current=null,received=0,busy=false,error='',url=null,requestId=0;
@@ -23,7 +23,7 @@
   if(error){status.textContent=error;return;}if(busy){status.textContent='Đang đồng bộ OVERLAY...';return;}if(!current)return;
   const remaining=Math.max(0,Math.ceil((current.remaining-(current.running?Date.now()-received:0))/1000));
   const time=String(Math.floor(remaining/60)).padStart(2,'0')+':'+String(remaining%60).padStart(2,'0');
-  status.textContent='Đang hiện '+labels[current.kind]+' · '+(current.finished?'Đã hoàn tất · Giữ GAMERES':current.running?'Chuyển sau '+time:'Đã dừng chuyển · Còn '+time);
+  status.textContent='Đang hiện '+labels[current.kind]+' · '+(current.finished?'Đã hoàn tất · Giữ SUMARY':current.running?'Chuyển sau '+time:'Đã dừng chuyển · Còn '+time);
  }
  async function request(action,interval){
   const id=++requestId;
@@ -38,8 +38,8 @@
   try{
    let interval;if(action==='start'){
     interval=parseDuration(input.value);
-    if(['csmDownload','cssDownload','grDownload'].some(id=>!document.getElementById(id)||document.getElementById(id).disabled))throw Error('Hãy lấy dữ liệu dùng chung và chờ MVP, SUMARY, GAMERES cập nhật xong trước khi bắt đầu.');
-    await Promise.all(['cs-mvp','cs-summary','cs-gameres'].map(kind=>root.BroadcastPreview.sync(kind)));
+    if(['csmDownload','cssDownload','grDownload'].some(id=>!document.getElementById(id)||document.getElementById(id).disabled))throw Error('Hãy lấy dữ liệu dùng chung và chờ MVP, GAMERES, SUMARY cập nhật xong trước khi bắt đầu.');
+    await Promise.all(['cs-mvp','cs-gameres','cs-summary'].map(kind=>root.BroadcastPreview.sync(kind)));
    }
    await request(action,interval);
   }catch(e){error=e.message;}finally{busy=false;display();}

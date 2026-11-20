@@ -1,9 +1,9 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {command,snapshot,kinds}=require('../overlay-program');
-test('program advances MVP, SUMARY, GAMERES then holds the last overlay',()=>{
+test('program advances MVP, GAMERES, SUMARY then holds the last overlay',()=>{
  const p=command(null,{action:'start',interval:90000},1000);
  for(const [time,index] of [[1000,0],[90999,0],[91000,1],[181000,2],[900000,2]])assert.equal(snapshot(p,time).index,index);
- assert.equal(snapshot(p,181000).finished,true);assert.deepEqual(kinds,['cs-mvp','cs-summary','cs-gameres']);
+ assert.equal(snapshot(p,181000).finished,true);assert.deepEqual(kinds,['cs-mvp','cs-gameres','cs-summary']);
 });
 test('pause freezes current overlay and resume preserves remaining dwell time even after long delays',()=>{
  let p=command(null,{action:'start',interval:90000},1000);p=command(p,{action:'pause'},121000);

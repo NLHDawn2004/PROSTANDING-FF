@@ -9,7 +9,7 @@ test('one persistent program preview selects current source and freezes on pause
   assert.equal((await fetch(bases[0]+'/api/broadcast/cs-overlay/program',{method:'POST',body:'{}'})).status,401);
   assert.equal((await control({action:'start',interval:90000})).status,400);
   const images=[];
-  for(const [i,kind] of ['cs-mvp','cs-summary','cs-gameres'].entries()){
+  for(const [i,kind] of ['cs-mvp','cs-gameres','cs-summary'].entries()){
    const png=Buffer.alloc(25);Buffer.from('89504e470d0a1a0a','hex').copy(png);png.writeUInt32BE(1920,16);png.writeUInt32BE(1080,20);png[24]=i;images.push(png);
    assert.equal((await fetch(bases[0]+'/api/broadcast/'+kind,{method:'POST',headers:{authorization:'test'},body:png})).status,200);
    await fetch(bases[0]+'/api/broadcast/'+kind+'/control',{method:'POST',headers:{authorization:'test'},body:JSON.stringify({visible:false,effect:'broadcast',duration:4000})});
@@ -17,16 +17,16 @@ test('one persistent program preview selects current source and freezes on pause
   const start=await control({action:'start',interval:90000});assert.equal(start.status,200);const {url}=await start.json();
   const read=async()=>{const r=await fetch(bases[1]+url+'.json');assert.equal(r.status,200);return r.json();};
   let state=await read();assert.equal(state.kind,'cs-mvp');assert.equal(state.settings.visible,true);assert.equal(state.settings.duration,4000);const firstVersion=state.version;
-  now=91000;state=await read();assert.equal(state.kind,'cs-summary');assert.notEqual(state.version,firstVersion);
+  now=91000;state=await read();assert.equal(state.kind,'cs-gameres');assert.notEqual(state.version,firstVersion);
   assert.deepEqual(Buffer.from(await (await fetch(bases[1]+url+'.png?v='+state.version)).arrayBuffer()),images[1]);
   assert.deepEqual(Buffer.from(await (await fetch(bases[1]+url+'.png?v='+firstVersion)).arrayBuffer()),images[0]);
   now=121000;const paused=await control({action:'pause'},bases[1]);assert.equal((await paused.json()).url,url);
-  now=999000;state=await read();assert.equal(state.kind,'cs-summary');assert.equal(state.program.running,false);assert.equal(state.program.remaining,60000);
+  now=999000;state=await read();assert.equal(state.kind,'cs-gameres');assert.equal(state.program.running,false);assert.equal(state.program.remaining,60000);
   const updated=Buffer.from(images[1]);updated[24]=8;
-  await fetch(bases[0]+'/api/broadcast/cs-summary',{method:'POST',headers:{authorization:'test'},body:updated});
-  state=await read();assert.equal(state.kind,'cs-summary');assert.equal(state.program.running,false);
+  await fetch(bases[0]+'/api/broadcast/cs-gameres',{method:'POST',headers:{authorization:'test'},body:updated});
+  state=await read();assert.equal(state.kind,'cs-gameres');assert.equal(state.program.running,false);
   assert.deepEqual(Buffer.from(await (await fetch(bases[1]+url+'.png?v='+state.version)).arrayBuffer()),updated);
-  assert.equal((await control({action:'resume'})).status,200);now+=60000;state=await read();assert.equal(state.kind,'cs-gameres');assert.equal(state.program.finished,true);
+  assert.equal((await control({action:'resume'})).status,200);now+=60000;state=await read();assert.equal(state.kind,'cs-summary');assert.equal(state.program.finished,true);
   assert.equal((await fetch(bases[0]+url)).status,200);assert.equal((await fetch(bases[0]+url+'/viewer.js')).status,200);
   assert.equal((await fetch(bases[0]+url+'.png?v=cs-mvp-bad')).status,404);
   assert.equal((await control({action:'start',interval:0})).status,400);
