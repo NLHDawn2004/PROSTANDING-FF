@@ -28,13 +28,14 @@
  function entrance(state){
   cancel();const token=generation,duration=state.settings.duration;
   frame.style.visibility='hidden';
-  regions(state.kind).forEach((r,i)=>{
+  const rows=regions(state.kind);
+  rows.forEach((r,i)=>{
    const region=document.createElement('div');Object.assign(region.style,{position:'absolute',left:r.x/19.2+'%',top:r.y/10.8+'%',width:r.w/19.2+'%',height:r.h/10.8+'%',overflow:'hidden'});
    const img=document.createElement('img');img.src=frame.src;img.alt='';Object.assign(img.style,{position:'absolute',width:1920/r.w*100+'%',height:1080/r.h*100+'%',left:-r.x/r.w*100+'%',top:-r.y/r.h*100+'%',visibility:'visible',maxWidth:'none',objectFit:'fill'});region.append(img);parts.append(region);
    const transform=r.direction==='left'?'translateX(-18%)':r.direction==='right'?'translateX(18%)':r.direction==='up'?'translateY(15%)':'scale(1.12)';
-   motions.push(region.animate([{opacity:0,transform,filter:'blur(8px)'},{opacity:1,transform:'translate(0,0) scale(1)',filter:'blur(0)'}],{duration:duration*.6,delay:duration*(.12+i*.055),fill:'both',easing:'cubic-bezier(.16,1,.3,1)'}));
+   motions.push(region.animate([{opacity:0,transform,filter:'blur(8px)'},{opacity:1,transform:'translate(0,0) scale(1)',filter:'blur(0)'}],{duration:duration*.55,delay:duration*(.35+i*.1/Math.max(1,rows.length-1)),fill:'both',easing:'cubic-bezier(.16,1,.3,1)'}));
   });
-  for(let i=0;i<2;i++){const strip=document.createElement('div');Object.assign(strip.style,{position:'absolute',inset:'-15% -25%',background:i?'#effb58':'#ff269f',transform:'translateX(-150%) skewX(-18deg)'});parts.append(strip);motions.push(strip.animate([{transform:'translateX(-150%) skewX(-18deg)',opacity:1},{transform:'translateX(150%) skewX(-18deg)',opacity:1}],{duration:duration*.4,delay:i*duration*.06,fill:'none',easing:'cubic-bezier(.5,0,.2,1)'}));}
+  for(let i=0;i<2;i++){const strip=document.createElement('div');Object.assign(strip.style,{position:'absolute',inset:'-15% -25%',background:i?'#effb58':'#006400',transform:'translateX(-150%) skewX(-18deg)'});parts.append(strip);motions.push(strip.animate([{transform:'translateX(-150%) skewX(-18deg)',opacity:1},{transform:'translateX(150%) skewX(-18deg)',opacity:1}],{duration:duration*.65,delay:i*duration*.06,fill:'none',easing:'cubic-bezier(.5,0,.2,1)'}));}
   Promise.allSettled(motions.map(m=>m.finished)).then(()=>{if(token!==generation)return;parts.replaceChildren();motions=[];frame.style.visibility=lastState?.settings.visible?'visible':'hidden';});
  }
  async function refresh(){
