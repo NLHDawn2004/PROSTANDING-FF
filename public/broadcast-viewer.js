@@ -1,5 +1,6 @@
 (function(root){
- const keyframes={none:null,fade:[{opacity:0},{opacity:1}],left:[{opacity:0,transform:'translateX(-7%)'},{opacity:1,transform:'translateX(0)'}],right:[{opacity:0,transform:'translateX(7%)'},{opacity:1,transform:'translateX(0)'}],up:[{opacity:0,transform:'translateY(7%)'},{opacity:1,transform:'translateY(0)'}],zoom:[{opacity:0,transform:'scale(.92)'},{opacity:1,transform:'scale(1)'}],broadcast:null};
+ const keyframes={none:null,fade:[{opacity:0},{opacity:1}],left:[{opacity:0,transform:'translateX(-7%)'},{opacity:1,transform:'translateX(0)'}],right:[{opacity:0,transform:'translateX(7%)'},{opacity:1,transform:'translateX(0)'}],up:[{opacity:0,transform:'translateY(7%)'},{opacity:1,transform:'translateY(0)'}],zoom:[{opacity:0,transform:'scale(.92)'},{opacity:1,transform:'scale(1)'}],broadcast:null,video:null};
+ const usesVideo=state=>state.settings.effect==='video'&&['mvp','booyah','h2h'].includes(state.kind);
  function shouldAnimate(settings,{first,changed,replayed,shown}){return settings.visible&&settings.effect!=='none'&&(replayed||shown||(first?settings.onOpen:changed&&settings.onUpdate));}
  function regions(kind){
   const rect=(x,y,w,h,direction)=>({x,y,w,h,direction});
@@ -12,12 +13,24 @@
   return [rect(0,0,1920,1080,'zoom')];
  }
  const titlePixel=(x,y,r,g,b,a)=>x>=130&&x<1815&&y>=130&&y<500&&a>0&&Math.abs(r-237)<18&&Math.abs(g-250)<18&&Math.abs(b-94)<22;
- if(typeof module!=='undefined'&&module.exports){module.exports={keyframes,shouldAnimate,regions,titlePixel};return;}
- const frame=document.getElementById('frame');let version=null,replay=null,visible=false,first=true,objectURL=null,motions=[],generation=0,flash=null,flashVersion=null,lastState=null;
+ if(typeof module!=='undefined'&&module.exports){module.exports={keyframes,shouldAnimate,regions,titlePixel,usesVideo};return;}
+ const frame=document.getElementById('frame');let version=null,replay=null,visible=false,first=true,objectURL=null,motions=[],generation=0,flash=null,flashVersion=null,lastState=null,videoJob=null;
  const stage=document.createElement('div');Object.assign(stage.style,{position:'absolute',left:'50%',top:'50%',width:'min(100vw,177.777778vh)',height:'min(56.25vw,100vh)',transform:'translate(-50%,-50%)',pointerEvents:'none'});document.body.append(stage);
  const parts=document.createElement('div');Object.assign(parts.style,{position:'absolute',inset:'0',overflow:'hidden'});stage.append(parts);
  const title=document.createElement('canvas');title.width=1920;title.height=1080;Object.assign(title.style,{position:'absolute',inset:'0',width:'100%',height:'100%',opacity:'0'});stage.append(title);
- function cancel(){generation++;for(const m of motions)m.cancel();motions=[];parts.replaceChildren();}
+ function cancel(){if(videoJob)videoJob.finish();generation++;for(const m of motions)m.cancel();motions=[];parts.replaceChildren();}
+ function videoTransition(state,hiding=false,commit=()=>{}){
+  const wasVisible=frame.style.visibility==='visible'&&Boolean(frame.src);cancel();frame.style.visibility=wasVisible?'visible':'hidden';
+  const clip=document.createElement('video');clip.muted=true;clip.playsInline=true;clip.preload='auto';clip.src=location.pathname+'/transition.webm';
+  Object.assign(clip.style,{position:'absolute',inset:'0',width:'100%',height:'100%',objectFit:'fill',pointerEvents:'none'});stage.append(clip);
+  let cut=false,watchdog;
+  const job={finish(){if(videoJob!==job)return;videoJob=null;clearTimeout(watchdog);clip.pause();clip.remove();commit();frame.style.visibility=lastState?.settings.visible?'visible':'hidden';}};videoJob=job;
+  const update=time=>{if(videoJob===job&&!cut&&time>=.85){cut=true;commit();frame.style.visibility=hiding?'hidden':'visible';}};
+  const nextFrame=()=>{if(videoJob===job&&clip.requestVideoFrameCallback)clip.requestVideoFrameCallback((_,metadata)=>{update(metadata.mediaTime);nextFrame();});};
+  clip.ontimeupdate=()=>update(clip.currentTime);clip.onended=clip.onerror=()=>job.finish();
+  clip.onloadedmetadata=()=>{if(videoJob!==job)return;clip.playbackRate=clip.duration/(state.settings.duration/1000);clip.play().then(()=>{if(videoJob!==job)return;clearTimeout(watchdog);watchdog=setTimeout(()=>job.finish(),state.settings.duration+1500);nextFrame();},()=>job.finish());};
+  watchdog=setTimeout(()=>job.finish(),10000);
+ }
  function stopFlash(){if(flash)flash.cancel();flash=null;title.style.opacity='0';}
  function titleMask(){
   const ctx=title.getContext('2d',{willReadFrequently:true});ctx.clearRect(0,0,1920,1080);ctx.drawImage(frame,0,0,1920,1080);const pixels=ctx.getImageData(0,0,1920,1080),d=pixels.data;
@@ -44,6 +57,7 @@
  }
  function exit(state){
   stopFlash();
+  if(usesVideo(state)){videoTransition(state,true);return;}
   if(state.settings.effect==='broadcast'){entrance(state,true);return;}
   cancel();const token=generation;frame.style.visibility='visible';
   const motion=frame.animate(keyframes[state.settings.effect],{duration:state.settings.duration,direction:'reverse',fill:'both',easing:'cubic-bezier(.2,.7,.2,1)'});motions.push(motion);
@@ -53,16 +67,19 @@
   try{
    const response=await fetch(location.pathname+'.json',{cache:'no-store'});if(!response.ok)throw Error();const state=await response.json(),s=state.settings,changed=state.version!==version;
    if(!state.version){frame.style.visibility='hidden';cancel();stopFlash();return;}
-   if(changed){const imageResponse=await fetch(location.pathname+'.png?v='+encodeURIComponent(state.version),{cache:'no-store'});if(!imageResponse.ok)throw Error();const next=URL.createObjectURL(await imageResponse.blob());try{await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=reject;image.src=next;});}catch(error){URL.revokeObjectURL(next);throw error;}frame.src=next;await frame.decode();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=next;}
+   let commit=()=>{};
+   if(changed){const imageResponse=await fetch(location.pathname+'.png?v='+encodeURIComponent(state.version),{cache:'no-store'});if(!imageResponse.ok)throw Error();const next=URL.createObjectURL(await imageResponse.blob());try{await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=reject;image.src=next;});}catch(error){URL.revokeObjectURL(next);throw error;}let committed=false;commit=()=>{if(committed)return;committed=true;frame.src=next;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=next;};if(videoJob)cancel();}
    const replayed=replay!==null&&replay!==s.replay,run=shouldAnimate(s,{first,changed,replayed,shown:!first&&!visible&&s.visible});lastState=state;
    if(!s.visible){
+    commit();
     stopFlash();
     if(!first&&visible&&['cs-mvp','cs-summary','cs-gameres','mvp','booyah','h2h'].includes(state.kind)&&s.effect!=='none')exit(state);
-    else if(first||visible||!motions.length){cancel();frame.style.visibility='hidden';}
+    else if(first||visible||(!motions.length&&!videoJob)){cancel();frame.style.visibility='hidden';}
    }
    else{
-    if(run){stopFlash();if(s.effect==='broadcast')entrance(state);else{cancel();frame.style.visibility='visible';if(keyframes[s.effect])motions.push(frame.animate(keyframes[s.effect],{duration:s.duration,easing:'cubic-bezier(.2,.7,.2,1)'}));}}
-    else if(!visible||!motions.length){if(!visible)cancel();frame.style.visibility='visible';}
+    if(run&&usesVideo(state)){stopFlash();videoTransition(state,false,commit);}
+    else{commit();if(run){stopFlash();if(s.effect==='broadcast')entrance(state);else{cancel();frame.style.visibility='visible';if(keyframes[s.effect])motions.push(frame.animate(keyframes[s.effect],{duration:s.duration,easing:'cubic-bezier(.2,.7,.2,1)'}));}}
+    else if(!visible||(!motions.length&&!videoJob)){if(!visible)cancel();frame.style.visibility='visible';}}
     updateFlash(state);
    }
    version=state.version;replay=s.replay;visible=s.visible;first=false;

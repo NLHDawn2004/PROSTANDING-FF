@@ -4,7 +4,7 @@ test('animation settings validate and preserve unrelated choices',()=>{
  assert.equal(settings({effect:'zoom',duration:1500}).effect,'zoom');
  assert.equal(settings({visible:false},{...defaults,effect:'left'}).effect,'left');
  assert.throws(()=>settings({duration:0}));assert.throws(()=>settings({effect:'<script>'}));assert.throws(()=>settings({visible:'false'}));
- assert.equal(Object.keys(keyframes).length,7);
+ assert.equal(Object.keys(keyframes).length,8);
 });
 test('effects run only for selected events; polling same frame never repeats',()=>{
  assert.equal(shouldAnimate(defaults,{first:true}),true);

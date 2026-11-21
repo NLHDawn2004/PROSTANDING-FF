@@ -49,10 +49,14 @@ function createBroadcast(options={}){
    }catch(error){send(res,/Expected|hợp lệ|Thời gian|giới hạn|JSON/.test(error.message)?400:503,JSON.stringify({error:error.message}));}
    return true;
   }
-  const view=url.pathname.match(/^\/broadcast\/([a-f0-9]{48})(\.png|\.json|\/viewer\.js)?$/);
+  const view=url.pathname.match(/^\/broadcast\/([a-f0-9]{48})(\.png|\.json|\/viewer\.js|\/transition\.webm)?$/);
   if(!view||req.method!=='GET')return false;
   try{
    const state=await store.get(view[1]);if(!state){send(res,404,'Preview unavailable','text/plain');return true;}
+   if(view[2]==='/transition.webm'){
+    if(!['mvp','booyah','h2h','br-overlay'].includes(state.kind)){send(res,404,'Video unavailable','text/plain');return true;}
+    await require('./transition-video').serveTransition(req,res);return true;
+   }
    if(view[2]==='/viewer.js'){send(res,200,viewer(),'text/javascript');return true;}
    if(state.program){
     const current=program.snapshot(state.program,now());

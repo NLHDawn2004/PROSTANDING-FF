@@ -2,16 +2,29 @@
  const channels=new Map(),defaults={effect:'fade',duration:600,onOpen:true,onUpdate:true,visible:true,replay:''};
  const labels={standings:'Bảng điểm',mvp:'MVP',h2h:'So sánh đội',booyah:'MVP đội BOOYAH','cs-mvp':'MVP Tử chiến','cs-summary':'SUMARY Tử chiến','cs-gameres':'GAMERES Tử chiến'};
  window.BroadcastPreview={mount(kind,canvas,anchor,prepare){
+  const isSurvival=['mvp','booyah','h2h'].includes(kind);
   const isOverlay=['cs-mvp','cs-summary','cs-gameres','mvp','booyah','h2h'].includes(kind);
   const panel=document.createElement('fieldset');panel.className='preview-controls';
   panel.innerHTML=`<legend>Preview · ${labels[kind]}</legend><div class="preview-buttons"><button type="button" data-action="open">Preview</button><button type="button" data-action="replay">Phát lại animation</button>${isOverlay?'<button type="button" data-action="show">Hiện OVERLAY</button><button type="button" data-action="hide">Ẩn OVERLAY</button>':'<button type="button" data-action="visibility">Ẩn Preview</button>'}<button type="button" data-action="sync">Đồng bộ ngay</button></div><div class="preview-options"><label>Animation<select data-setting="effect">${isOverlay?'<option value="broadcast">Chuyển cảnh Esports</option>':''}<option value="none">Không hiệu ứng</option><option value="fade">Mờ dần</option><option value="left">Trượt từ trái</option><option value="right">Trượt từ phải</option><option value="up">Trượt lên</option><option value="zoom">Phóng nhẹ</option></select></label><label>Thời gian (ms)<input type="number" min="100" max="5000" step="100" data-setting="duration"></label><label><input type="checkbox" data-setting="onOpen"> Khi mở Preview</label><label><input type="checkbox" data-setting="onUpdate"> Khi dữ liệu đổi</label>${kind==='cs-mvp'?'<label><input type="checkbox" data-setting="titleFlash"> Nháy trắng GAME MVP</label>':''}</div><p class="preview-status" role="status" aria-live="polite"></p><div class="preview-link"></div><small>Giữ trang điều khiển mở để tự đồng bộ. PNG tải xuống là ảnh tĩnh.</small>`;
   anchor.after(panel);
+  if(isSurvival){const option=document.createElement('option');option.value='video';option.textContent='Video HDPL5 · TRANSITION';panel.querySelector('[data-setting="effect"]').prepend(option);panel.querySelector('small').textContent+=' Video HDPL5 gốc dài 3 giây; nhập 3000 ms để phát tốc độ gốc.';}
   const status=panel.querySelector('.preview-status'),output=panel.querySelector('.preview-link');
   const button=action=>panel.querySelector('[data-action="'+action+'"]');
   let saved={};try{saved=JSON.parse(localStorage.getItem('ff-preview-'+kind)||'{}');}catch{}
   const channel={enabled:false,pending:null,dirty:false,controlDirty:false,lastHash:null,url:null,settings:{...defaults,...saved},retry:null};try{channel.enabled=localStorage.getItem('ff-preview-enabled-'+kind)==='true';}catch{}channels.set(kind,channel);
   if(isOverlay){if(!saved.effect)channel.settings.effect='broadcast';if(saved.duration===undefined)channel.settings.duration=1200;}if(kind==='cs-mvp')channel.settings.titleFlash=saved.titleFlash??true;
-  for(const key of ['effect','duration','onOpen','onUpdate',...(kind==='cs-mvp'?['titleFlash']:[])]){const input=panel.querySelector('[data-setting="'+key+'"]');if(input.type==='checkbox')input.checked=channel.settings[key];else input.value=channel.settings[key];input.onchange=()=>{const value=input.type==='checkbox'?input.checked:input.type==='number'?Number(input.value):input.value;if(key==='duration'&&(!Number.isFinite(value)||value<100||value>5000)){status.textContent='Thời gian phải từ 100 đến 5000 ms.';return;}channel.settings[key]=value;save();channel.controlDirty=true;if(channel.enabled)publish();};if(key==='duration')input.oninput=input.onchange;}
+  if(isSurvival){if(!saved.videoPreset)channel.settings.effect='video';if(saved.duration===undefined)channel.settings.duration=3000;if(channel.settings.effect==='video'&&channel.settings.duration<500)channel.settings.duration=500;channel.settings.videoPreset=1;save();}
+  for(const key of ['effect','duration','onOpen','onUpdate',...(kind==='cs-mvp'?['titleFlash']:[])]){
+   const input=panel.querySelector('[data-setting="'+key+'"]');if(input.type==='checkbox')input.checked=channel.settings[key];else input.value=channel.settings[key];
+   if(key==='duration')input.min=channel.settings.effect==='video'?'500':'100';
+   input.onchange=()=>{
+    const value=input.type==='checkbox'?input.checked:input.type==='number'?Number(input.value):input.value,min=channel.settings.effect==='video'?500:100;
+    if(key==='duration'&&(!Number.isFinite(value)||value<min||value>5000)){status.textContent='Thời gian phải từ '+min+' đến 5000 ms.';return;}
+    channel.settings[key]=value;
+    if(key==='effect'){const duration=panel.querySelector('[data-setting="duration"]');duration.min=value==='video'?'500':'100';if(value==='video'&&channel.settings.duration<500){channel.settings.duration=500;duration.value='500';}}
+    save();channel.controlDirty=true;if(channel.enabled)publish();
+   };if(key==='duration')input.oninput=input.onchange;
+  }
   function save(){try{localStorage.setItem('ff-preview-'+kind,JSON.stringify(channel.settings));}catch{}}
   function showLink(){if(!channel.url)return;output.replaceChildren();const link=document.createElement('a');link.href=channel.url;link.target='_blank';link.rel='noopener';link.textContent=channel.url;output.append('Link OBS/vMix · 1920 × 1080: ',link);}
   async function send(suffix,body,type){const response=await fetch('/api/broadcast/'+kind+suffix,{method:'POST',headers:{'Content-Type':type},body});let result;try{result=await response.json();}catch{throw Error('Không gửi được Preview. Kiểm tra kết nối và đăng nhập.');}if(!response.ok)throw Error(result.error||'Không gửi được Preview.');channel.url=new URL(result.url,location.origin).href;return result;}
