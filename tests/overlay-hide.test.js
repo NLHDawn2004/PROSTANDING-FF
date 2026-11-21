@@ -8,8 +8,8 @@ async function viewer(kind,effect='broadcast',initialVisible=true){
  const settle=()=>new Promise(resolve=>setImmediate(resolve));await settle();
  return {frame,animations,parts:body.children[0].children[0],async update(visible){state.settings.visible=visible;await poll();await settle();},async finish(){animations.forEach(a=>a.finish());await settle();}};
 }
-test('Hide reverses Esports for every CS overlay, lasts the selected duration and survives polling',async()=>{
- for(const kind of ['cs-mvp','cs-summary','cs-gameres']){
+test('Hide reverses Esports for every survival and CS overlay, lasts the selected duration and survives polling',async()=>{
+ for(const kind of ['cs-mvp','cs-summary','cs-gameres','mvp','booyah','h2h']){
   const ui=await viewer(kind);await ui.update(false);
   assert.ok(ui.animations.length>2,'Hide must animate '+kind);
   assert.ok(ui.parts.children.length>0);assert.equal(ui.frame.style.visibility,'hidden');
@@ -28,9 +28,9 @@ test('Hide reverses basic effects; showing again cancels exit without leaving a 
   await ui.update(false);await ui.finish();assert.equal(ui.frame.style.visibility,'hidden');
  }
 });
-test('hidden previews never play an exit on load; none hides immediately and survival previews stay unchanged',async()=>{
+test('hidden previews never play an exit on load; none hides immediately and standings previews stay unchanged',async()=>{
  const hidden=await viewer('cs-mvp','broadcast',false);assert.equal(hidden.animations.length,0);assert.equal(hidden.frame.style.visibility,'hidden');
- for(const [kind,effect] of [['cs-mvp','none'],['mvp','fade']]){const ui=await viewer(kind,effect);await ui.update(false);assert.equal(ui.animations.length,0);assert.equal(ui.frame.style.visibility,'hidden');}
+ for(const [kind,effect] of [['cs-mvp','none'],['standings','fade']]){const ui=await viewer(kind,effect);await ui.update(false);assert.equal(ui.animations.length,0);assert.equal(ui.frame.style.visibility,'hidden');}
 });
 test('Show interrupts Esports exit and stale completion cannot hide the new entrance',async()=>{
  const ui=await viewer('cs-summary');await ui.update(false);const exit=[...ui.animations];assert.ok(exit.length>0);

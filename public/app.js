@@ -366,6 +366,7 @@ function getPlayerKey(player, teamKey = "") {
 
 
 function getPlayerName(player) {
+  const overwrite=window.MVP?.nameOverride?.(String(player?.player_id??player?.uid??player?.id??''));if(overwrite)return overwrite;
 
   return String(
 
@@ -532,6 +533,7 @@ function delay(ms) {
 
 
 async function fetchMatches() {
+  if(window.SurvivalShared)return window.SurvivalShared.load(matchInput.value);
 
   if (window.location.protocol === "file:") {
     setStatus(

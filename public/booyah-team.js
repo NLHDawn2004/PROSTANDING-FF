@@ -24,7 +24,7 @@
  const background=image('booyah-team-template.png');background.catch(()=>{});
  const titleFonts=TitleFonts.mount('booyah',host,render,{fallback:'gff-vn-black'});
  const status=text=>{q('booyahStatus').textContent=text;};
- BroadcastPreview.mount('booyah',canvas,q('booyahDownload'));
+ BroadcastPreview.mount('booyah',canvas,q('booyahDownload'),async()=>{if(!ready)throw Error('Chờ dữ liệu BOOYAH cập nhật xong.');});
  function fit(text,x,y,width,size,color,isTitle=false){ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';do{ctx.font=isTitle?titleFonts.font(size--):RankingFonts.font('name',size--,900,{name:'gff-vn-black'});}while(size>9&&ctx.measureText(String(text)).width>width);ctx.fillText(String(text),x,y);}
  async function render(){
   const token=++revision;ready=false;q('booyahDownload').disabled=true;
@@ -50,10 +50,11 @@
     const values=stats(player);[[p.statsX,p.statsY],[p.statsX+208,p.statsY],[p.statsX,p.statsY+121],[p.statsX+208,p.statsY+121]].forEach(([x,y],j)=>fit(MVP.stat(values[j]),x,y,j%2?176:166,47,'#fff'));
     const row=document.createElement('p');row.textContent=`${name} · ID ${player.player_id??'—'} · ELIMS ${MVP.stat(values[0])} · DAMAGE ${MVP.stat(values[1])} · KNOCKDOWN ${MVP.stat(values[2])} · ASSISTS ${MVP.stat(values[3])}`;q('booyahRoster').appendChild(row);
    }
-   status(`${team.team_name||team.team_id||'Đội BOOYAH'} · Trận ${match.gameNumber} · ${players.length} tuyển thủ.`+(portraits.some(p=>!p)?' Có tuyển thủ chưa có ảnh; thêm ảnh theo ID trong tab MVP.':'')+(getPlayersFromTeam(team).length>4?' Chỉ hiển thị 4 tuyển thủ đầu tiên trong đội.':''));
+   status(`${team.team_name||team.team_id||'Đội BOOYAH'} · Trận ${match.gameNumber} · ${players.length} tuyển thủ.`+(portraits.some(p=>!p)?' Có tuyển thủ chưa có ảnh; thêm ảnh theo ID ở Dữ liệu dùng chung.':'')+(getPlayersFromTeam(team).length>4?' Chỉ hiển thị 4 tuyển thủ đầu tiên trong đội.':''));
    ready=players.length>0&&!loading;q('booyahDownload').disabled=!ready;BroadcastPreview.update('booyah');
   }catch(error){if(token===revision)status(error.message);}
  }
+ api.setMatches=async next=>{booyahMatches=next;q('booyahIds').value=next.map(m=>m.matchId).join(', ');loading=false;await render();if(!ready)throw Error(q('booyahStatus').textContent);};
  api.refresh=render;q('booyahMatch').onchange=render;q('booyahUpdate').onclick=render;
  q('booyahFetch').onclick=async()=>{
   if(loading)return;

@@ -3,6 +3,9 @@
  function shouldAnimate(settings,{first,changed,replayed,shown}){return settings.visible&&settings.effect!=='none'&&(replayed||shown||(first?settings.onOpen:changed&&settings.onUpdate));}
  function regions(kind){
   const rect=(x,y,w,h,direction)=>({x,y,w,h,direction});
+  if(kind==='mvp')return [rect(0,0,1920,310,'up'),rect(0,310,755,770,'left'),rect(755,310,445,770,'zoom'),rect(1200,310,720,770,'right')];
+  if(kind==='booyah')return [rect(0,0,1920,305,'up'),rect(0,305,960,387,'left'),rect(960,305,960,387,'right'),rect(0,692,960,388,'left'),rect(960,692,960,388,'right')];
+  if(kind==='h2h')return [rect(0,0,1920,300,'up'),rect(0,300,640,780,'left'),rect(640,300,640,780,'zoom'),rect(1280,300,640,780,'right')];
   if(kind==='cs-mvp')return [rect(0,0,1920,300,'up'),rect(550,300,760,690,'zoom'),rect(0,300,550,690,'left'),rect(1310,300,610,690,'right'),rect(0,990,1920,90,'up')];
   if(kind==='cs-summary')return [rect(0,0,1920,260,'up'),rect(0,260,1300,390,'left'),rect(0,650,1300,430,'left'),rect(1300,260,620,820,'right')];
   if(kind==='cs-gameres')return [rect(0,0,1920,196,'up'),rect(0,196,790,390,'left'),rect(790,196,360,390,'zoom'),rect(1150,196,770,390,'right'),rect(0,586,960,494,'left'),rect(960,586,960,494,'right')];
@@ -54,7 +57,7 @@
    const replayed=replay!==null&&replay!==s.replay,run=shouldAnimate(s,{first,changed,replayed,shown:!first&&!visible&&s.visible});lastState=state;
    if(!s.visible){
     stopFlash();
-    if(!first&&visible&&['cs-mvp','cs-summary','cs-gameres'].includes(state.kind)&&s.effect!=='none')exit(state);
+    if(!first&&visible&&['cs-mvp','cs-summary','cs-gameres','mvp','booyah','h2h'].includes(state.kind)&&s.effect!=='none')exit(state);
     else if(first||visible||!motions.length){cancel();frame.style.visibility='hidden';}
    }
    else{

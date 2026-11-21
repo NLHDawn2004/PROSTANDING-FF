@@ -12,15 +12,17 @@ function createBroadcast(options={}){
  async function body(req,max){let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>max)throw Error('Dữ liệu vượt giới hạn tải lên.');chunks.push(chunk);}return Buffer.concat(chunks);}
  const viewer=()=>fs.readFileSync(path.join(__dirname,'public/broadcast-viewer.js'));
  return async function(req,res,url,authenticated=false){
-  if(url.pathname==='/api/broadcast/cs-overlay/program'&&authenticated&&['GET','POST'].includes(req.method)){
+  const programRoute=url.pathname.match(/^\/api\/broadcast\/(cs-overlay|br-overlay)\/program$/);
+  if(programRoute&&authenticated&&['GET','POST'].includes(req.method)){
    if(req.headers.origin&&req.headers.origin!==url.origin){send(res,403,'{"error":"Invalid origin"}');return true;}
    try{
-    const token=await tokenFor('cs-overlay');let state;
+    const profile=programRoute[1],sequence=profile==='br-overlay'?program.survivalKinds:program.kinds;
+    const token=await tokenFor(profile);let state;
     if(req.method==='POST'){
      const input=JSON.parse((await body(req,4096)).toString());
      state=await exclusive(token,async()=>{
-      if(input.action==='start')for(const kind of program.kinds){if(!(await store.get(await tokenFor(kind)))?.version)throw Error('Chưa có ảnh '+kind+'. Hãy lấy dữ liệu và đồng bộ đủ ba overlay.');}
-      const previous=await store.get(token),next={kind:'cs-overlay',program:program.command(previous?.program,input,now())};await store.set(token,next);return next;
+      if(input.action==='start')for(const kind of sequence){if(!(await store.get(await tokenFor(kind)))?.version)throw Error('Chưa có ảnh '+kind+'. Hãy lấy dữ liệu và đồng bộ đủ ba overlay.');}
+      const previous=await store.get(token),next={kind:profile,program:program.command(previous?.program,input,now(),sequence)};await store.set(token,next);return next;
      });
     }else state=await store.get(token);
     if(!state){send(res,404,'{"error":"Chưa bắt đầu chuyển overlay."}');return true;}
@@ -55,8 +57,8 @@ function createBroadcast(options={}){
    if(state.program){
     const current=program.snapshot(state.program,now());
     if(view[2]==='.png'){
-     const requested=url.searchParams.get('v'),match=requested?.match(/^(cs-mvp|cs-summary|cs-gameres)-([a-f0-9]{64})$/),kind=match?.[1]||(!requested?current.kind:null);
-     if(!kind){send(res,404,'Frame unavailable','text/plain');return true;}
+     const requested=url.searchParams.get('v'),match=requested?.match(/^(cs-mvp|cs-summary|cs-gameres|mvp|booyah|h2h)-([a-f0-9]{64})$/),kind=match?.[1]||(!requested?current.kind:null);
+     if(!kind||!(state.program.kinds||program.kinds).includes(kind)){send(res,404,'Frame unavailable','text/plain');return true;}
      const sourceToken=await tokenFor(kind),source=await store.get(sourceToken),version=match?.[2]||source?.version;
      if(!version||!source?.recent.includes(version)){send(res,404,'Frame unavailable','text/plain');return true;}
      const data=await store.image(sourceToken,version);if(!data){send(res,404,'Frame unavailable','text/plain');return true;}send(res,200,data,'image/png');return true;

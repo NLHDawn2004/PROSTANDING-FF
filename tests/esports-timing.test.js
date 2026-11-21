@@ -9,7 +9,7 @@ async function entrance(kind,duration){
  await new Promise(resolve=>setImmediate(resolve));return animations;
 }
 test('Esports entrance uses the complete requested duration for every overlay and dark green/yellow sweeps',async()=>{
- for(const kind of ['cs-mvp','cs-summary','cs-gameres'])for(const duration of [100,600,1200,4000,5000]){
+ for(const kind of ['cs-mvp','cs-summary','cs-gameres','mvp','booyah','h2h'])for(const duration of [100,600,1200,4000,5000]){
   const animations=await entrance(kind,duration);assert.ok(animations.length>2);
   const end=Math.max(...animations.map(a=>a.options.duration+(a.options.delay||0)));
   assert.ok(Math.abs(end-duration)<.001,kind+': requested '+duration+'ms, got '+end+'ms');
@@ -26,7 +26,7 @@ function controls(saved){
  window.BroadcastPreview.mount('cs-mvp',{}, {after(){} });return {inputs,buttons,stored,sent};
 }
 test('saved 600ms is respected and editing duration before Show sends the latest value',()=>{
- const ui=controls({effect:'broadcast',duration:600});assert.equal(Number(ui.inputs.get('duration').value),600);
+ const ui=controls({effect:'fade',duration:600});assert.equal(ui.inputs.get('effect').value,'fade');assert.equal(Number(ui.inputs.get('duration').value),600);
  const input=ui.inputs.get('duration');input.value='4000';assert.equal(typeof input.oninput,'function');input.oninput();
  ui.buttons.get('show').onclick();assert.equal(JSON.parse(ui.sent[0].body).duration,4000);
  assert.equal(JSON.parse(ui.stored.get('ff-preview-cs-mvp')).duration,4000);

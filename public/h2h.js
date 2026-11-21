@@ -26,7 +26,7 @@
  document.querySelector('.workspace').appendChild(section);
  const tab=document.createElement('button');tab.type='button';tab.className='tab';tab.dataset.tab='h2h';tab.textContent='So sánh đội';document.querySelector('.workspace-tabs').appendChild(tab);
  const q=id=>section.querySelector('#'+id),canvas=q('h2hCanvas'),ctx=canvas.getContext('2d');
- BroadcastPreview.mount('h2h',canvas,q('h2hExport'));
+ BroadcastPreview.mount('h2h',canvas,q('h2hExport'),async()=>{if(!ready)throw Error('Chờ dữ liệu HEAD TO HEAD cập nhật xong.');});
  const titleFonts=TitleFonts.mount('h2h',section.querySelector('.h2h-controls'),render);
  const status=text=>{q('h2hStatus').textContent=text;};
  const image=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Không tải được ảnh nền so sánh.'));img.src=src;});
@@ -53,9 +53,9 @@
     ctx.save();ctx.beginPath();ctx.roundRect(666,y,590,58,6);ctx.clip();ctx.fillStyle='#f063fc';ctx.fillRect(666,y,590*ratio,58);ctx.fillStyle='#58f2fc';ctx.fillRect(666+590*ratio,y,590*(1-ratio),58);ctx.restore();
     text(format(a),775,y+30,200,38,'#102650');text(format(b),1145,y+30,200,38,'#102650');
    });
-   BroadcastPreview.update('h2h');
    ready=!busy;q('h2hExport').disabled=!ready;
-   status(`${left.name}: ${left.games} trận · ${right.name}: ${right.games} trận.`+(logos.some(l=>!l)?' Thiếu logo: thêm ảnh trong kho logo ở tab Bảng điểm rồi bấm Cập nhật.':''));
+   BroadcastPreview.update('h2h');
+   status(`${left.name}: ${left.games} trận · ${right.name}: ${right.games} trận.`+(logos.some(l=>!l)?' Thiếu logo: thêm ảnh ở Dữ liệu dùng chung.':''));
   }catch(error){if(token===revision)status(error.message);}
  }
  document.querySelectorAll('.workspace-tabs .tab').forEach(button=>{button.onclick=()=>{
@@ -65,6 +65,7 @@
   document.body.classList.toggle('mvp-active',name==='mvp'||name==='h2h'||name==='booyah');
   if(name==='templates')renderTemplates();if(name==='designer')resizeBoard();if(name==='mvp')MVP.refresh();if(name==='h2h')render();if(name==='booyah')BooyahTeam.refresh();
  };});
+ api.setMatches=async next=>{teams=aggregate(next,getPlayersFromTeam);for(const id of ['h2hLeft','h2hRight']){const old=q(id).value;q(id).replaceChildren();for(const team of teams)q(id).append(new Option(team.name,team.key));if(teams.some(t=>t.key===old))q(id).value=old;}if(q('h2hLeft').value===q('h2hRight').value&&teams.length>1)q('h2hRight').selectedIndex=1;q('h2hIds').value=next.map(m=>m.matchId).join(', ');busy=false;await render();if(!ready)throw Error(q('h2hStatus').textContent);};
  q('h2hFetch').onclick=async()=>{
   if(busy)return;
   try{

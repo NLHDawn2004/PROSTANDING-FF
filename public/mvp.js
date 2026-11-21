@@ -41,7 +41,7 @@
  const nameControls=document.createElement('div');
  nameControls.innerHTML='<label>Nhập PlayerNameOverwrite.json <input id="mvpNamesFile" type="file" accept=".json,application/json"></label><p id="mvpNamesStatus" role="status" aria-live="polite"></p><button id="mvpClearNames" type="button">Xóa tên ghi đè</button>';
  section.querySelector('.mvp-photo-label').before(nameControls);
- const q=id=>section.querySelector('#'+id),canvas=q('mvpCanvas'),ctx=canvas.getContext('2d');
+ const q=id=>document.getElementById(id),canvas=q('mvpCanvas'),ctx=canvas.getContext('2d');
  try{const saved=localStorage.getItem('ff-mvp-names');if(saved)names=parseNames(saved);}catch{}
  const nameStatus=()=>{q('mvpNamesStatus').textContent=names.size?`Đã lưu ${names.size} tên. MVP dùng PlayerNameOverwrite theo PlayerID; ID không có trong tệp sẽ giữ tên từ trận đấu.`:'Chưa nhập tệp tên. MVP đang dùng tên từ trận đấu.';};
  nameStatus();
@@ -51,7 +51,7 @@
   catch(error){q('mvpNamesStatus').textContent='Không nhập được tệp: '+error.message+' Danh sách tên hiện tại được giữ nguyên.';}finally{resetButton.disabled=loading;}
  };
  q('mvpClearNames').onclick=()=>{names=new Map();try{localStorage.removeItem('ff-mvp-names');}catch{}nameStatus();render();};
- BroadcastPreview.mount('mvp',canvas,q('mvpDownload'));
+ BroadcastPreview.mount('mvp',canvas,q('mvpDownload'),async()=>{if(!ready)throw Error('Chờ dữ liệu MVP cập nhật xong.');});
  const titleFonts=TitleFonts.mount('mvp',q('mvpTitle').parentElement.parentElement,render,{input:q('mvpTitle')});
  const message=text=>{q('mvpStatus').textContent=text;};
  const loadImage=src=>new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Không đọc được ảnh MVP.'));img.src=src;});
@@ -87,12 +87,13 @@
     const row=document.createElement('p');row.textContent=`#${i+1} · ${p.name} · ID: ${p.playerId||'API không cung cấp'} · ELIMS ${stat(p.kills)} · DAMAGE ${stat(p.damage)} · ASSIST ${stat(p.assists)}`;q('mvpPlayers').appendChild(row);
    });
    const missing=players.filter((p,i)=>!portraits[i]);
-   message(!players.length?'Chưa có người chơi. Hãy nhập Match ID trong tab MVP và bấm Lấy MVP.':`Top ${players.length} người chơi từ ${mvpMatches.length} trận MVP.`+(missing.length?` Thiếu ảnh của ${missing.map(p=>p.name).join(', ')}. Chọn ảnh có tên trùng ID bên dưới.`:''));
-   BroadcastPreview.update('mvp');
+   message(!players.length?'Chưa có người chơi. Hãy nhập Match ID trong tab MVP và bấm Lấy MVP.':`Top ${players.length} người chơi từ ${mvpMatches.length} trận MVP.`+(missing.length?` Thiếu ảnh của ${missing.map(p=>p.name).join(', ')}. Thêm ảnh có tên trùng ID ở Dữ liệu dùng chung.`:''));
    ready=players.length>0&&!loading;q('mvpDownload').disabled=!ready;
+   BroadcastPreview.update('mvp');
   }catch(error){if(token===revision)message(error.message);}
  }
- api.refresh=render;
+ api.refresh=render;api.nameOverride=id=>names.get(String(id));
+ api.setMatches=async next=>{mvpMatches=next;q('mvpMatchIds').value=next.map(m=>m.matchId).join(', ');loading=false;await render();if(!ready)throw Error(q('mvpStatus').textContent);};
  q('mvpDetails').addEventListener('toggle',()=>{if(q('mvpDetails').open)render();});
  q('mvpRefresh').onclick=render;
  const resetButton=document.createElement('button');resetButton.id='mvpReset';resetButton.type='button';resetButton.textContent='Khôi phục mặc định';q('mvpDownload').after(resetButton);
