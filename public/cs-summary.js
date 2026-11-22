@@ -22,6 +22,6 @@
  function groups(matches){
   const result=new Map();for(const match of matches){const names=match.teams.map(t=>String(t.team_name||'').trim()).sort(),key=JSON.stringify(names.map(n=>n.toUpperCase()));if(!result.has(key))result.set(key,{key,label:names.join(' — '),matches:[]});result.get(key).matches.push(match);}return [...result.values()];
  }
- const pageGames=(games,page=0)=>games.slice(Math.max(0,Number(page)||0)*3,Math.max(0,Number(page)||0)*3+3);
+ const pageGames=(games,page=0,size=3)=>{size=size===5?5:3;const start=Math.max(0,Math.floor(Number(page)||0))*size;return games.slice(start,start+size);};
  const api={build,game,stat,groups,pageGames};if(typeof module!=='undefined'&&module.exports){module.exports=api;return;}root.ClashSquadSummary=api;
 })(typeof window!=='undefined'?window:globalThis);
