@@ -4,16 +4,25 @@
  const get=format=>layouts[format]||layouts.bo3;
  function draw(ctx,{format='bo3',frame,model,games,logos=[],teamLogos=[],font,displayTeam=name=>name}){
   const layout=get(format),bo5=layout===layouts.bo5;
+  const fontFor=bo5?(_,size)=>`400 ${size}px "GFFVNBlack",Arial,sans-serif`:font;
   ctx.clearRect(0,0,1920,1080);ctx.drawImage(frame,0,0,1920,1080);
   function text(value,x,y,width,size,color='#000',align='center',visualCenter=false){
-   value=String(value??'—');ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';do{ctx.font=font('name',size--,800);}while(ctx.measureText(value).width>width&&size>10);
-   if(visualCenter){const m=ctx.measureText(value);if(Number.isFinite(m.actualBoundingBoxAscent)&&Number.isFinite(m.actualBoundingBoxDescent)){ctx.textBaseline='alphabetic';y+=(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2;}}ctx.fillText(value,x,y);
+   value=String(value??'—');ctx.fillStyle=color;ctx.textAlign=align;ctx.textBaseline='middle';do{ctx.font=fontFor('name',size--,800);}while(ctx.measureText(value).width>width&&size>10);
+   if(visualCenter){ctx.textBaseline='alphabetic';const m=ctx.measureText(value);if(Number.isFinite(m.actualBoundingBoxAscent)&&Number.isFinite(m.actualBoundingBoxDescent))y+=(m.actualBoundingBoxAscent-m.actualBoundingBoxDescent)/2;}ctx.fillText(value,x,y);
   }
+  if(bo5){ctx.clearRect(310,40,1300,200);text('MATCH SUMMARY',960,143,1280,190,'#102b2f','center',true);text('MATCH SUMMARY',960,135,1280,190,'#e8f170','center',true);}
   const xs=[448,580,717,840,974,1154];
   for(let t=0;t<2;t++){
-   const team=model.teams[t],hy=t?653:263;
-   if(bo5){const top=t?653:262;ctx.fillStyle='#fff54e';ctx.fillRect(112,top,278,88);ctx.fillRect(1048,top,227,88);text('TOTAL',1154,top+30,218,29);text('KNOCKDOWN',1154,top+59,218,29);}
-   if(team){const logo=teamLogos[t];if(logo){const scale=Math.min(70/logo.width,70/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,160-w/2,hy+43-h/2,w,h);}text(displayTeam(team.team_name),280,hy+43,176,50,'#116175','center',true);}
+   const team=model.teams[t],hy=bo5?(t?653:262):(t?653:263),centerY=hy+(bo5?44:43);
+   if(bo5){
+    ctx.fillStyle='#fff54e';ctx.fillRect(112,hy,1163,88);
+    ['ELIMS','DEATH','ASSIST','KDA','DAMAGE','KNOCKDOWN'].forEach((label,c)=>{
+     const width=c===5?218:c===4?180:120;
+     if(c===3)text(label,xs[c],centerY,width,32,'#000','center',true);
+     else{text('TOTAL',xs[c],hy+30,width,29,'#000','center',true);text(label,xs[c],hy+59,width,29,'#000','center',true);}
+    });
+   }
+   if(team){const logo=teamLogos[t],box=bo5?64:70;if(logo){const scale=Math.min(box/logo.width,box/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,160-w/2,centerY-h/2,w,h);}text(displayTeam(team.team_name),bo5?300:280,centerY,bo5?168:176,50,'#116175','center',true);}
    for(let i=0;i<4;i++){
     const p=team?.players[i];if(!p)continue;const y=layout.rows[t][i];text(p.name,155,y,235,31,'#000','left');
     [summary.stat(p.kills),summary.stat(p.death),summary.stat(p.assists),summary.stat(p.kda).replace(',','.'),summary.stat(p.damage).replace(/\./g,''),summary.stat(p.knock_down)].forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));

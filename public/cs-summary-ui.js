@@ -19,14 +19,14 @@
  try{q('cssFormat').value=localStorage.getItem('ff-cs-summary-format')==='bo5'?'bo5':'bo3';}catch{};
  const frames={bo3:image('cs-summary-template.png'),bo5:image('cs-summary-bo5-template.png')};for(const frame of Object.values(frames))frame.catch(()=>{});
  for(const face of RankingFonts.entries)q('cssFont').append(new Option(face.label,face.id));q('cssFont').value='gff-vn-black';
- function controls(){q('cssTeamNames').querySelectorAll('input').forEach(input=>input.disabled=busy);for(const id of ['cssFormat','cssIds','cssFetch','cssScope','cssGroup','cssPage','cssFont','cssUpdate','cssReset','cssNames','cssLogos'])q(id).disabled=busy;q('cssDownload').disabled=busy||!ready;host.querySelectorAll('.preview-controls button').forEach(b=>b.disabled=busy||!ready);}
+ function controls(){q('cssTeamNames').querySelectorAll('input').forEach(input=>input.disabled=busy);for(const id of ['cssFormat','cssIds','cssFetch','cssScope','cssGroup','cssPage','cssFont','cssUpdate','cssReset','cssNames','cssLogos'])q(id).disabled=busy;q('cssFont').disabled=busy||q('cssFormat').value==='bo5';q('cssDownload').disabled=busy||!ready;host.querySelectorAll('.preview-controls button').forEach(b=>b.disabled=busy||!ready);}
  const status=text=>{q('cssStatus').textContent=text;};
  async function render(){
-  const token=++revision;ready=false;controls();
+  const token=++revision;ready=false;if(q('cssFormat').value==='bo5')q('cssFont').value='gff-vn-black';controls();
   try{
    const format=q('cssFormat').value,layout=root.CsSummaryLayout.get(format);
    const group=api.groups(matches).find(g=>g.key===q('cssGroup').value),selected=(group?.matches||[]).filter(m=>!q('cssScope').value||m.id===q('cssScope').value),model=api.build(selected,root.ClashSquadMVP.nameMap()),games=api.pageGames(model.games,q('cssPage').value,layout.slots);
-   const fonts={name:q('cssFont').value};try{await RankingFonts.load(fonts);}catch{fonts.name='';}
+   const fonts={name:q('cssFont').value};try{await RankingFonts.load(fonts);}catch(error){if(format==='bo5')throw error;fonts.name='';}
    const logos=await Promise.all(games.map(async g=>{if(!g.winner)return null;const team=model.teams.find(t=>t.team_name===g.winner.team_name)||g.winner;const src=await root.ClashSquadMVP.logoFor(team);return src?image(src).catch(()=>null):null;}));
    const teamLogos=await Promise.all(model.teams.map(async team=>{const src=await root.ClashSquadMVP.logoFor(team);return src?image(src).catch(()=>null):null;}));
    const bg=await frames[format];if(token!==revision)return;

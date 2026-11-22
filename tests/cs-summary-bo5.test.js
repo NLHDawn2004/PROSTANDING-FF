@@ -21,8 +21,8 @@ test('BO5 draws five winners and uses the same six player stats as BO3, clearing
  assert.equal(texts.filter(t=>t[0].includes(' : ')).length,5);assert.ok(texts.some(t=>t[0]==='5 : 6'));
  assert.ok(texts.some(t=>t[0]==='KNOCKDOWN'));assert.equal(texts.filter(t=>t[0]==='19').length,2);assert.ok(!texts.some(t=>t[0]==='999'));
  assert.ok(texts.some(t=>t[0]==='1.57'));assert.ok(!texts.some(t=>t[0].includes('AAAA')||t[0].includes('BBBB')||t[0].includes('PICK')));
- assert.ok(fills.some(r=>r[0]===112&&r[1]===262));assert.ok(fills.some(r=>r[0]===1048&&r[1]===653));
- assert.deepEqual(texts.filter(t=>t[1]===974).map(t=>t[0]),['12345','12345']);
+ assert.ok(fills.some(r=>r[0]===112&&r[1]===262));assert.ok(fills.some(r=>r[0]===112&&r[1]===653&&r[2]===1163));
+ assert.deepEqual(texts.filter(t=>t[1]===974&&/^\d+$/.test(t[0])).map(t=>t[0]),['12345','12345']);
  assert.equal(images.length,8);assert.ok(texts.every(t=>t[1]>=0&&t[1]<=1920&&t[2]>=0&&t[2]<=1080));
  texts.length=0;layout.draw(ctx,{format:'bo3',frame:{},model:{teams,games},games,logos:[],teamLogos:[],font:(_,size)=>size+'px Arial',displayTeam:name=>name});assert.equal(texts.filter(t=>t[0].includes(' : ')).length,3);assert.deepEqual(texts.filter(t=>t[1]===974).map(t=>t[0]),['12345','12345']);
 });
