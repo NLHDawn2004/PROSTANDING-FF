@@ -16,7 +16,7 @@
    if(team){const logo=teamLogos[t];if(logo){const scale=Math.min(70/logo.width,70/logo.height),w=logo.width*scale,h=logo.height*scale;ctx.drawImage(logo,160-w/2,hy+43-h/2,w,h);}text(displayTeam(team.team_name),280,hy+43,176,50,'#116175','center',true);}
    for(let i=0;i<4;i++){
     const p=team?.players[i];if(!p)continue;const y=layout.rows[t][i];text(p.name,155,y,235,31,'#000','left');
-    [summary.stat(p.kills),summary.stat(p.death),summary.stat(p.assists),summary.stat(p.kda).replace(',','.'),summary.stat(p.damage),summary.stat(p.knock_down)].forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));
+    [summary.stat(p.kills),summary.stat(p.death),summary.stat(p.assists),summary.stat(p.kda).replace(',','.'),summary.stat(p.damage).replace(/\./g,''),summary.stat(p.knock_down)].forEach((value,c)=>text(value,xs[c],y,c===4?180:120,31));
    }
   }
   for(let i=0;i<layout.slots;i++){
