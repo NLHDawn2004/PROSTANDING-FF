@@ -1,6 +1,16 @@
 /* Shared coordinates for the on-screen board and the 1920 x 1080 PNG. */
 (function(root){
   const fontTools=typeof module!=='undefined'&&module.exports?require('./ranking-fonts.js'):root.RankingFonts;
+  const backgrounds=new Map();
+  function clearBranding(ctx){ctx.clearRect?.(1784,12,136,92);}
+  function backgroundURL(src,doc=root.document,ImageType=root.Image){
+    if(!backgrounds.has(src)){
+      const pending=new Promise((resolve,reject)=>{
+        const image=new ImageType();image.onload=()=>{try{const canvas=doc.createElement('canvas');canvas.width=1920;canvas.height=1080;const ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,1920,1080);clearBranding(ctx);resolve(canvas.toDataURL('image/png'));}catch(error){reject(error);}};image.onerror=()=>reject(Error('Không tải được ảnh Standing FN.'));image.src=src;
+      }).catch(error=>{backgrounds.delete(src);throw error;});backgrounds.set(src,pending);
+    }
+    return backgrounds.get(src);
+  }
   const defaults={firstY:418,stepY:109,fontSize:36,nameSize:27,logo:280,name:347,booyah:576,kills:710,total:844,rightLogo:1138,rightName:1205,rightBooyah:1434,rightKills:1568,rightTotal:1702,titleX:1203,titleY:278,titleSize:44,titleWidth:300,titleHeight:56,titleAngle:-2.5};
   function position(index,coords={}){
     const c={...defaults,...coords},right=index>=6;
@@ -13,6 +23,7 @@
     return {x:c.titleX,y:c.titleY,size,width:c.titleWidth,lines,lineHeight:size*1.08,angle:c.titleAngle};
   }
   async function draw(ctx,teams,loadImage,logoFor,coords={},title=''){
+    clearBranding(ctx);
     const c={...defaults,...coords};
     if(String(title).trim()){
       const p=titleLayout(ctx,title,c);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.angle*Math.PI/180);
@@ -31,7 +42,7 @@
       for(const k of ['booyah','kills','total'])ctx.fillText(String(t[k]??0),p[k],p.y);
     }
   }
-  const api={defaults,position,titleLayout,draw};
+  const api={defaults,position,titleLayout,draw,backgroundURL};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.StandingFN=api;
 })(typeof window!=='undefined'?window:globalThis);

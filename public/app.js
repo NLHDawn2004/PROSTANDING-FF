@@ -5857,7 +5857,7 @@ async function rankingGetImage(id){const db=await rankingDB();return new Promise
 async function rankingDeleteImage(id){const db=await rankingDB();return new Promise((resolve,reject)=>{const tx=db.transaction("images","readwrite");tx.objectStore("images").delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}
 async function rankingImageURL(id){
   if(id==='standing-ffpt')return '/standing-ffpt.jpg';
-  if(id==='standing-fn')return '/standing-fn.png?v=20261125-no-corner-logo';
+  if(id==='standing-fn')return StandingFN.backgroundURL('/standing-fn.png?v=20261125-no-corner-logo');
   if(id==="default")return "/ranking-template.png";
   if(rankingObjectURLs.has(id))return rankingObjectURLs.get(id);
   const blob=await rankingGetImage(id);

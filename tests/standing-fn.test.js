@@ -51,3 +51,11 @@ test('PNG draws full names, logos and only the three visible score fields',async
   assert.deepEqual(texts[24].slice(1),[1205,418]);
   assert.equal(texts.at(-1)[0],'79');
 });
+
+test('Standing FN clears only the top-right branding in board backgrounds and PNG exports',async()=>{
+ const fn=require(file),calls=[];const ctx={clearRect(...args){calls.push(['clear',...args]);},drawImage(...args){calls.push(['image',...args]);},fillText(){},measureText(){return {width:10}}};
+ await fn.draw(ctx,[],async()=>{},()=>null);assert.deepEqual(calls,[['clear',1784,12,136,92]]);
+ calls.length=0;const canvas={getContext:()=>ctx,toDataURL:()=> 'data:image/png;base64,clean'},doc={createElement:()=>canvas};class FakeImage{set src(value){this.onload();}}
+ assert.equal(await fn.backgroundURL('/fn-test.png',doc,FakeImage),'data:image/png;base64,clean');
+ assert.equal(calls[0][0],'image');assert.deepEqual(calls[0].slice(2),[0,0,1920,1080]);assert.deepEqual(calls[1],['clear',1784,12,136,92]);
+});
